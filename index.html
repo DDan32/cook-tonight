@@ -90,6 +90,12 @@ ul.tips{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px}
 
 .cards{display:flex;flex-direction:column;gap:10px}
 .card{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.card{grid-template-columns:72px 1fr auto}
+.thumb{width:72px;height:72px;border-radius:12px;background:var(--bg);display:grid;place-items:center;overflow:hidden}
+.thumb svg,.hero svg{width:100%;height:100%;display:block}
+.hero{height:150px;border-radius:12px;background:var(--bg);display:grid;place-items:center;overflow:hidden}
+.hero svg{width:auto;height:100%;aspect-ratio:1}
+@media (max-width:420px){.card{grid-template-columns:56px 1fr auto}.thumb{width:56px;height:56px}}
 .card.picked{border-color:var(--accent);box-shadow:inset 4px 0 0 var(--accent)}
 .card.dim{opacity:.6}
 .card-main{min-width:0;display:flex;flex-direction:column;gap:4px;text-align:left;border:0;background:none;padding:0}
@@ -496,6 +502,32 @@ function autoPick(){
   S.picked = out.map(r => r.id);
 }
 
+
+/* 菜餚示意圖：依食材顏色與菜式畫出俯視圖 */
+const FOOD = {chicken_breast:'#f0d9b5',chicken_thigh:'#d99a5b',chicken_leg:'#d08a4e',pork_mince:'#b9714f',pork_rib:'#a85f3c',beef:'#8c4a35',tilapia:'#f3ead8',salmon:'#f08a62',shrimp:'#f4a38a',clam:'#d8c7ad',egg:'#f6d750',tofu_soft:'#fbf3dc',edamame:'#8fc25a',tomato:'#e5483a',broccoli:'#3f8f46',cabbage:'#b9dc8a',spinach:'#2f7d3a',loofah:'#a8cf7a',cucumber:'#6dbb5e',bokchoy:'#7cc46a',onion:'#e9d9ea',carrot:'#f08a24',potato:'#e8cf8f',yam:'#f2ead2',sweet_potato:'#e0792f',zucchini:'#9bc76a',pepper:'#e8433a',shiitake:'#9a6b4a',shimeji:'#d9c3a0',basil:'#2f7a3a',scallion:'#5dae52',lemon:'#f5dc3a',white_fungus:'#f7f0d8',lotus:'#f2e6c0',curry:'#c98a2c',wakame:'#2d6b4a',red_date:'#a8342c',goji:'#d9402c',sishen:'#e6d9b8'};
+function art(r){
+  let h = 0; for (const c of r.id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const rnd = () => { h = (h + 0x6D2B79F5) >>> 0; let t = h; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const items = r.ing.filter(([id]) => FOOD[id] && ING[id] && ING[id].cat !== 's').sort((a,b) => b[1] - a[1]).slice(0,4).map(([id]) => FOOD[id]);
+  const cols = items.length ? items : ['#e9d9a8'];
+  const soup = r.cat === 'soup' || r.cat === 'sweet', bowl = r.cat === 'bowl' || r.cat === 'staple';
+  let s = '<svg viewBox="0 0 120 120" role="img" aria-label="'+esc(r.n)+'示意圖">';
+  const dots = (n, rad, cx, cy, min, max) => { let o = ''; for (let i = 0; i < n; i++) { const a = rnd() * 6.283, d = Math.sqrt(rnd()) * rad, x = cx + Math.cos(a) * d, y = cy + Math.sin(a) * d, w = min + rnd() * (max - min), c = cols[i % cols.length];
+    o += '<rect x="'+(x - w/2).toFixed(1)+'" y="'+(y - w/3).toFixed(1)+'" width="'+w.toFixed(1)+'" height="'+(w * .66).toFixed(1)+'" rx="'+(w * .3).toFixed(1)+'" fill="'+c+'" transform="rotate('+Math.round(rnd() * 180)+' '+x.toFixed(1)+' '+y.toFixed(1)+')"/>'; } return o; };
+  s += '<ellipse cx="60" cy="112" rx="38" ry="5" fill="#000" opacity=".12"/>';
+  if (soup) {
+    s += '<circle cx="60" cy="60" r="50" fill="#f4f1ea" stroke="#cfc8b8" stroke-width="2"/><circle cx="60" cy="60" r="40" fill="'+(r.cat === 'sweet' ? '#f6e6b4' : r.id === 'miso_soup' ? '#c9995a' : '#ecc880')+'"/>'+dots(r.cat === 'sweet' ? 12 : 14, 28, 60, 60, 8, 14)+'<circle cx="60" cy="60" r="40" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="3"/>';
+  } else if (bowl) {
+    s += '<circle cx="60" cy="60" r="50" fill="#355c7d"/><circle cx="60" cy="60" r="43" fill="#4a7399"/><circle cx="60" cy="60" r="37" fill="'+(r.id === 'brown_rice' ? '#d3b68a' : '#fffaf0')+'"/>';
+    if (r.cat === 'bowl') s += '<path d="M60 23a37 37 0 0 1 32 56Q60 70 28 79A37 37 0 0 1 60 23z" fill="'+(r.id === 'curry' ? '#c98a2c' : '#f0d27a')+'" opacity=".95"/>'+dots(9, 22, 62, 56, 9, 15);
+    else for (let i = 0; i < 40; i++) { const a = rnd() * 6.283, d = Math.sqrt(rnd()) * 32; s += '<ellipse cx="'+(60 + Math.cos(a) * d).toFixed(1)+'" cy="'+(60 + Math.sin(a) * d).toFixed(1)+'" rx="3" ry="1.6" fill="#fff" opacity=".6" transform="rotate('+Math.round(rnd() * 180)+' '+(60 + Math.cos(a) * d).toFixed(1)+' '+(60 + Math.sin(a) * d).toFixed(1)+')"/>'; }
+    if (r.id === 'brown_rice') s += dots(7, 26, 60, 60, 7, 11);
+  } else {
+    s += '<circle cx="60" cy="60" r="50" fill="#f4f1ea" stroke="#cfc8b8" stroke-width="2"/><circle cx="60" cy="60" r="39" fill="none" stroke="#e3ddcf" stroke-width="2"/>'+dots(15, 30, 60, 60, 9, 17);
+  }
+  return s + '</svg>';
+}
+
 /* 顯示格式 */
 const frac = n => { const w = Math.floor(n), f = Math.round((n - w) * 4); return (w || !f ? w : '') + ['', '¼', '½', '¾'][f]; };
 const gr = g => g >= 1000 ? (g/1000).toFixed(1) + 'kg' : g < 10 ? Math.max(1, Math.round(g)) + 'g' : g < 100 ? Math.round(g/5)*5 + 'g' : Math.round(g/10)*10 + 'g';
@@ -561,7 +593,7 @@ function vMenu(){
 }
 function card(r){
   const on = (S.picked || []).includes(r.id), ok = fits(r), n = nutri(r);
-  return '<article class="card'+(on ? ' picked' : '')+(ok ? '' : ' dim')+'"><button class="card-main" data-act="open" data-id="'+r.id+'">'+
+  return '<article class="card'+(on ? ' picked' : '')+(ok ? '' : ' dim')+'"><div class="thumb">'+art(r)+'</div><button class="card-main" data-act="open" data-id="'+r.id+'">'+
     '<h3><span class="chip">'+CATS[r.cat]+'</span>'+esc(r.n)+'</h3>'+
     '<span class="meta">'+r.min+' 分鐘 · '+r.tools.map(toolName).join('或')+(ok ? '' : ' · <b>'+why(r)+'</b>')+'</span>'+
     '<span class="meta num" style="font-size:16px">'+Math.round(n.k)+' 大卡 · 蛋白質 '+Math.round(n.pr)+'g · 鈉 '+Math.round(n.na)+'mg</span>'+
@@ -574,7 +606,7 @@ function detail(r){
   const e = {pr:n.pr*4, f:n.f*9, c:n.c*4}, es = e.pr + e.f + e.c || 1;
   const row = (l,v,u,k) => '<tr><td>'+l+'</td><td>'+(v < 10 ? v.toFixed(1) : Math.round(v))+' '+u+'</td><td><div class="meter'+(k === 'na' && v > 800 ? ' over' : '')+'"><i style="width:'+Math.min(100, v / DV[k] * 100)+'%"></i></div></td><td>'+Math.round(v / DV[k] * 100)+'%</td></tr>';
   return '<div class="dlg"><div class="dlg-head"><div><div class="chips" style="margin-bottom:4px"><span class="chip">'+CATS[r.cat]+'</span>'+tagChips(r)+'</div><h2 style="font-size:22px">'+esc(r.n)+'</h2><p class="muted small">'+r.min+' 分鐘（動手約 '+r.act+' 分）· '+r.tools.map(toolName).join('或')+'</p></div><button class="x" data-act="close" aria-label="關閉">×</button></div>'+
-    (r.note ? '<div class="note"><b>食療說明</b>　'+esc(r.note)+'</div>' : '')+
+    '<div class="hero">'+art(r)+'</div>'+(r.note ? '<div class="note"><b>食療說明</b>　'+esc(r.note)+'</div>' : '')+
     '<div><div class="kcal"><span class="big">'+Math.round(n.k)+'</span><span class="muted">大卡 / 每人份</span><span class="tag" style="margin-left:auto">'+money(costPer(r))+'<small>/人</small></span></div>'+
     '<div class="macro" style="margin:8px 0 6px"><i style="width:'+e.pr/es*100+'%;background:var(--c-pro)"></i><i style="width:'+e.f/es*100+'%;background:var(--c-fat)"></i><i style="width:'+e.c/es*100+'%;background:var(--c-carb)"></i></div>'+
     '<div class="legend"><span style="--k:var(--c-pro)">蛋白質 '+Math.round(e.pr/es*100)+'%</span><span style="--k:var(--c-fat)">脂肪 '+Math.round(e.f/es*100)+'%</span><span style="--k:var(--c-carb)">碳水 '+Math.round(e.c/es*100)+'%</span><span style="--k:transparent">熱量來源佔比</span></div></div>'+
