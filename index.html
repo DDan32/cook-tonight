@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>今晚煮什麼</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
@@ -224,6 +225,27 @@ ol.all button span:first-child{font-size:12px;color:var(--accent);font-weight:70
 .spark{transform-origin:center;animation:tw 1s ease-in-out infinite alternate}
 @keyframes tw{from{transform:scale(.3);opacity:.3}to{transform:scale(1);opacity:1}}
 @media (prefers-reduced-motion: reduce){.anim svg *{animation:none!important}}
+
+/* photos, forms */
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.hero{height:210px}
+.hero img{width:100%;height:100%;object-fit:cover;display:block}
+.hero svg{width:auto;height:100%}
+.credit{font-size:11px;color:var(--muted);line-height:1.5}
+.credit a{color:inherit}
+.anim img{width:100%;height:100%;object-fit:cover;display:block;animation:kb 9s ease-in-out infinite alternate}
+@keyframes kb{from{transform:scale(1)}to{transform:scale(1.08)}}
+.uprow{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.fld{display:flex;flex-direction:column;gap:4px;min-width:0}
+.fld > span{font-size:13px;color:var(--muted)}
+.inp{width:100%;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);padding:8px 10px;min-width:0}
+textarea.inp{min-height:130px;line-height:1.6;resize:vertical}
+.frow{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.irow{display:grid;grid-template-columns:minmax(0,1fr) 84px 34px;gap:6px;align-items:center}
+.irow .cust{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px;background:var(--accent-soft);border-radius:8px;padding:8px}
+.irow .cust[hidden]{display:none}
+.credits summary{font-size:13px;color:var(--muted)}
+.credits ul{margin:8px 0 0;padding-left:1.2em;font-size:12px;color:var(--muted)}
 </style>
 
 <div class="wrap">
@@ -236,9 +258,11 @@ ol.all button span:first-child{font-size:12px;color:var(--accent);font-weight:70
   </header>
   <nav class="steps" id="nav" aria-label="流程"></nav>
   <main id="view"></main>
+  <details class="credits panel" id="credits"></details>
 </div>
 <div class="bar" id="bar" hidden></div>
 <dialog id="dlg"></dialog>
+<dialog id="frm"></dialog>
 
 <script>
 /*DATA-START*/
@@ -463,12 +487,13 @@ const scene = a => '<svg viewBox="0 0 240 150" role="img" aria-label="'+(ACT[a]|
 
 /* 狀態 */
 const KEY = 'cook-tonight-v1';
-const S = {store:'px',budget:500,people:2,time:45,tools:['wok','pot','dianguo'],goals:[],picked:null,manual:false,skip:{},need:{},price:{},view:'setup',ai:[],cook:null,step:0};
+const S = {mine:[],photos:{},customIng:[],store:'px',budget:500,people:2,time:45,tools:['wok','pot','dianguo'],goals:[],picked:null,manual:false,skip:{},need:{},price:{},view:'setup',ai:[],cook:null,step:0};
 try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
+(S.customIng || []).forEach(x => { ING[x.id] = x; });
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const all = () => R.concat(S.ai || []);
+const all = () => R.concat(S.mine || [], S.ai || []);
 const byId = id => all().find(r => r.id === id);
 const picked = () => (S.picked || []).map(byId).filter(Boolean);
 const store = () => STORES.find(s => s.id === S.store) || STORES[0];
@@ -504,6 +529,8 @@ function autoPick(){
 
 
 /* 菜餚示意圖：依食材顏色與菜式畫出俯視圖 */
+const PH = {"sanbei": {"f": "images/sanbei.jpg", "by": "Ceeseven", "lic": "CC BY-SA 4.0", "page": "https://commons.wikimedia.org/wiki/File:Three_Cup_Chicken_in_Clay_Pot.jpg"}, "mapo": {"f": "images/mapo.jpg", "by": "Sichuanfoodlover", "lic": "CC BY-SA 4.0", "page": "https://commons.wikimedia.org/wiki/File:Authentic_Mapo_Tofu.jpg"}, "tomato_egg": {"f": "images/tomato_egg.jpg", "by": "Huangdan2060", "lic": "CC BY 3.0", "page": "https://commons.wikimedia.org/wiki/File:Hunan_cuisine,_stir-fried_tomato_with_eggs.jpg"}, "curry": {"f": "images/curry.jpg", "by": "Ocdp", "lic": "CC0", "page": "https://commons.wikimedia.org/wiki/File:Beef_curry_rice_003.jpg"}, "oyakodon": {"f": "images/oyakodon.jpg", "by": "Ocdp", "lic": "CC0", "page": "https://commons.wikimedia.org/wiki/File:Oyakodon_003.jpg"}, "chawanmushi": {"f": "images/chawanmushi.jpg", "by": "Brücke-Osteuropa", "lic": "CC0", "page": "https://commons.wikimedia.org/wiki/File:Chawan-mushi.JPG"}, "miso_soup": {"f": "images/miso_soup.jpg", "by": "Ocdp", "lic": "CC0", "page": "https://commons.wikimedia.org/wiki/File:Miso_Soup_001.jpg"}, "steamed_fish": {"f": "images/steamed_fish.jpg", "by": "Pingbaoseimhuo", "lic": "CC BY-SA 3.0", "page": "https://commons.wikimedia.org/wiki/File:HK_food_dinner_streamed_fish_July-2012.JPG"}, "salmon_veg": {"f": "images/salmon_veg.jpg", "by": "Gerda Arendt", "lic": "CC0", "page": "https://commons.wikimedia.org/wiki/File:Steckenroth,_salmon_on_baked_vegetables.jpg"}, "cabbage": {"f": "images/cabbage.jpg", "by": "Christopher", "lic": "CC BY 2.0", "page": "https://commons.wikimedia.org/wiki/File:Stir_Fried_Cabbage_and_Bacon_%E5%9F%B9%E6%A0%B9%E9%AB%98%E4%B8%BD%E8%8F%9C.jpg"}, "bokchoy": {"f": "images/bokchoy.jpg", "by": "Ralff Nestor Nacor", "lic": "CC BY-SA 4.0", "page": "https://commons.wikimedia.org/wiki/File:Stir_Fried_Bok_Choy,_Aug_2025.jpg"}, "edamame_shrimp": {"f": "images/edamame_shrimp.jpg", "by": "Ser Amantio di Nicolao", "lic": "CC0", "page": "https://commons.wikimedia.org/wiki/File:Baby_shrimp_with_scrambled_egg.jpg"}, "rice": {"f": "images/rice.jpg", "by": "Douglas Perkins", "lic": "CC0", "page": "https://commons.wikimedia.org/wiki/File:A_bowl_of_rice.jpg"}, "brown_rice": {"f": "images/brown_rice.jpg", "by": "Ceeseven", "lic": "CC BY-SA 4.0", "page": "https://commons.wikimedia.org/wiki/File:Bowl_of_Cooked_Brown_Rice.jpg"}, "a_chop": {"f": "images/a_chop.jpg", "by": "Sarah5252", "lic": "CC BY-SA 4.0", "page": "https://commons.wikimedia.org/wiki/File:Chopping_Welsh_onion_(Allium_fistulosum)_on_a_wooden_cutting_board.jpg"}, "a_fry": {"f": "images/a_fry.jpg", "by": "作者未署名", "lic": "CC BY-SA 2.0", "page": "https://commons.wikimedia.org/wiki/File:Wok_Cooking.jpg"}, "a_boil": {"f": "images/a_boil.jpg", "by": "Tomwsulcer", "lic": "CC0", "page": "https://commons.wikimedia.org/wiki/File:Water_boiling_in_a_pot_on_a_stove.jpg"}, "a_airfry": {"f": "images/a_airfry.jpg", "by": "I am R.", "lic": "CC BY 2.0", "page": "https://commons.wikimedia.org/wiki/File:Air_Fryer_2020.jpg"}, "a_microwave": {"f": "images/a_microwave.jpg", "by": "Klaas van Buiten", "lic": "CC BY-SA 4.0", "page": "https://commons.wikimedia.org/wiki/File:CombiMicroWaveOven.jpg"}, "a_wash": {"f": "images/a_wash.jpg", "by": "Shixart1985", "lic": "CC BY 2.0", "page": "https://commons.wikimedia.org/wiki/File:Preparing_fresh_sweet_potatoes_by_washing_them_in_the_kitchen_sink_with_running_water.jpg"}};
+const ACTPH = {chop:'a_chop',fry:'a_fry',boil:'a_boil',wash:'a_wash',airfry:'a_airfry',microwave:'a_microwave'};
 const FOOD = {chicken_breast:'#f0d9b5',chicken_thigh:'#d99a5b',chicken_leg:'#d08a4e',pork_mince:'#b9714f',pork_rib:'#a85f3c',beef:'#8c4a35',tilapia:'#f3ead8',salmon:'#f08a62',shrimp:'#f4a38a',clam:'#d8c7ad',egg:'#f6d750',tofu_soft:'#fbf3dc',edamame:'#8fc25a',tomato:'#e5483a',broccoli:'#3f8f46',cabbage:'#b9dc8a',spinach:'#2f7d3a',loofah:'#a8cf7a',cucumber:'#6dbb5e',bokchoy:'#7cc46a',onion:'#e9d9ea',carrot:'#f08a24',potato:'#e8cf8f',yam:'#f2ead2',sweet_potato:'#e0792f',zucchini:'#9bc76a',pepper:'#e8433a',shiitake:'#9a6b4a',shimeji:'#d9c3a0',basil:'#2f7a3a',scallion:'#5dae52',lemon:'#f5dc3a',white_fungus:'#f7f0d8',lotus:'#f2e6c0',curry:'#c98a2c',wakame:'#2d6b4a',red_date:'#a8342c',goji:'#d9402c',sishen:'#e6d9b8'};
 function art(r){
   let h = 0; for (const c of r.id) h = (h * 31 + c.charCodeAt(0)) >>> 0;
@@ -526,6 +553,28 @@ function art(r){
     s += '<circle cx="60" cy="60" r="50" fill="#f4f1ea" stroke="#cfc8b8" stroke-width="2"/><circle cx="60" cy="60" r="39" fill="none" stroke="#e3ddcf" stroke-width="2"/>'+dots(15, 30, 60, 60, 9, 17);
   }
   return s + '</svg>';
+}
+
+
+function pic(r){
+  const u = (S.photos || {})[r.id];
+  if (u) return '<img src="'+u+'" alt="'+esc(r.n)+'" loading="lazy">';
+  if (PH[r.id]) return '<img src="'+PH[r.id].f+'" alt="'+esc(r.n)+'" loading="lazy">';
+  return art(r);
+}
+function creditOf(k){ const c = PH[k]; return c ? '照片：'+esc(c.by)+' · '+esc(c.lic)+' · <a href="'+c.page+'" target="_blank" rel="noopener">Wikimedia Commons</a>' : ''; }
+const creditLine = r => (S.photos || {})[r.id] ? '我自己的照片' : creditOf(r.id);
+function resizeImg(file){
+  return new Promise((ok, no) => { const img = new Image(), url = URL.createObjectURL(file);
+    img.onload = () => { const k = Math.min(1, 800 / Math.max(img.width, img.height)), c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url); ok(c.toDataURL('image/jpeg', .8)); };
+    img.onerror = () => { URL.revokeObjectURL(url); no(new Error('bad image')); }; img.src = url; });
+}
+const ACTKEY = [['microwave','微波'],['airfry','氣炸'],['airfry','烤箱'],['marinate','醃'],['soak','泡'],['wash','洗'],['chop','切'],['chop','剝'],['chop','削'],['steam','蒸'],['steam','電鍋'],['steam','燉'],['rest','燜'],['rest','靜置'],['boil','煮'],['boil','滾'],['boil','燙'],['fry','炒'],['fry','煎'],['fry','爆香'],['mix','拌'],['mix','攪'],['serve','盛'],['serve','上桌'],['serve','擺']];
+function parseSteps(text){
+  return text.split(/\n+/).map(x => x.trim().replace(/^[\d０-９]+[.、)）\s]+/, '')).filter(Boolean).slice(0,15).map(s => {
+    const hit = ACTKEY.map(k => [k, s.indexOf(k[1])]).filter(x => x[1] >= 0).sort((x, y) => x[1] - y[1])[0], m = s.match(/(\d+)\s*(分鐘|分|秒)/);
+    return {a: hit ? hit[0][0] : 'mix', s: s.slice(0,200), t: m ? Math.min(7200, +m[1] * (m[2] === '秒' ? 1 : 60)) : 0};
+  });
 }
 
 /* 顯示格式 */
@@ -589,11 +638,12 @@ function vMenu(){
     (n.na > 1000 ? '<p class="small muted">這一桌每人約 '+Math.round(n.na)+'mg 鈉，一餐建議 800mg 上下；湯少喝幾口、醬汁不要全淋。</p>' : '')+
   '</section>'+
   '<div class="cards">'+rs.map(card).join('')+'</div>'+
+  '<section class="panel"><header><h2>我的食譜</h2><button class="btn sm" data-act="newrecipe">＋ 新增我的食譜</button></header><p class="small muted">把自己的拿手菜加進來，會一起算營養、採買清單和下廚步驟。可以放自己拍的照片。只存在這台裝置。</p></section>'+
   (AI ? '<section class="panel"><header><h2>想吃點別的？</h2></header><p class="muted small">請 Claude 依你的條件再設計 3 道。會用到你自己的 Claude 用量；營養和價格一樣由這裡的食材表計算。</p><div class="opts">'+(aiCtl ? '<button class="btn ghost" data-act="aistop">停止</button>' : '<button class="btn ghost" data-act="ai">請 Claude 再想 3 道</button>')+((S.ai || []).length && !aiCtl ? '<button class="linkbtn" data-act="aiclear">清掉 Claude 的提案</button>' : '')+'</div>'+(aiMsg ? '<p class="small" id="aimsg">'+esc(aiMsg)+'</p>' : '')+'</section>' : '');
 }
 function card(r){
   const on = (S.picked || []).includes(r.id), ok = fits(r), n = nutri(r);
-  return '<article class="card'+(on ? ' picked' : '')+(ok ? '' : ' dim')+'"><div class="thumb">'+art(r)+'</div><button class="card-main" data-act="open" data-id="'+r.id+'">'+
+  return '<article class="card'+(on ? ' picked' : '')+(ok ? '' : ' dim')+'"><div class="thumb">'+pic(r)+'</div><button class="card-main" data-act="open" data-id="'+r.id+'">'+
     '<h3><span class="chip">'+CATS[r.cat]+'</span>'+esc(r.n)+'</h3>'+
     '<span class="meta">'+r.min+' 分鐘 · '+r.tools.map(toolName).join('或')+(ok ? '' : ' · <b>'+why(r)+'</b>')+'</span>'+
     '<span class="meta num" style="font-size:16px">'+Math.round(n.k)+' 大卡 · 蛋白質 '+Math.round(n.pr)+'g · 鈉 '+Math.round(n.na)+'mg</span>'+
@@ -606,7 +656,7 @@ function detail(r){
   const e = {pr:n.pr*4, f:n.f*9, c:n.c*4}, es = e.pr + e.f + e.c || 1;
   const row = (l,v,u,k) => '<tr><td>'+l+'</td><td>'+(v < 10 ? v.toFixed(1) : Math.round(v))+' '+u+'</td><td><div class="meter'+(k === 'na' && v > 800 ? ' over' : '')+'"><i style="width:'+Math.min(100, v / DV[k] * 100)+'%"></i></div></td><td>'+Math.round(v / DV[k] * 100)+'%</td></tr>';
   return '<div class="dlg"><div class="dlg-head"><div><div class="chips" style="margin-bottom:4px"><span class="chip">'+CATS[r.cat]+'</span>'+tagChips(r)+'</div><h2 style="font-size:22px">'+esc(r.n)+'</h2><p class="muted small">'+r.min+' 分鐘（動手約 '+r.act+' 分）· '+r.tools.map(toolName).join('或')+'</p></div><button class="x" data-act="close" aria-label="關閉">×</button></div>'+
-    '<div class="hero">'+art(r)+'</div>'+(r.note ? '<div class="note"><b>食療說明</b>　'+esc(r.note)+'</div>' : '')+
+    '<div class="hero">'+pic(r)+'</div>'+(creditLine(r) ? '<p class="credit">'+creditLine(r)+'</p>' : '')+'<div class="uprow"><label class="btn ghost sm">'+((S.photos || {})[r.id] ? '換一張我的照片' : '用我自己的照片')+'<input type="file" accept="image/*" id="up-photo" data-id="'+r.id+'" hidden></label>'+((S.photos || {})[r.id] ? '<button class="linkbtn" data-act="rmphoto" data-id="'+r.id+'">移除我的照片</button>' : '')+((r.mine || r.ai) ? '<button class="linkbtn" data-act="delrecipe" data-id="'+r.id+'" style="margin-left:auto">刪除這道菜</button>' : '')+'</div>'+(r.note ? '<div class="note"><b>食療說明</b>　'+esc(r.note)+'</div>' : '')+
     '<div><div class="kcal"><span class="big">'+Math.round(n.k)+'</span><span class="muted">大卡 / 每人份</span><span class="tag" style="margin-left:auto">'+money(costPer(r))+'<small>/人</small></span></div>'+
     '<div class="macro" style="margin:8px 0 6px"><i style="width:'+e.pr/es*100+'%;background:var(--c-pro)"></i><i style="width:'+e.f/es*100+'%;background:var(--c-fat)"></i><i style="width:'+e.c/es*100+'%;background:var(--c-carb)"></i></div>'+
     '<div class="legend"><span style="--k:var(--c-pro)">蛋白質 '+Math.round(e.pr/es*100)+'%</span><span style="--k:var(--c-fat)">脂肪 '+Math.round(e.f/es*100)+'%</span><span style="--k:var(--c-carb)">碳水 '+Math.round(e.c/es*100)+'%</span><span style="--k:transparent">熱量來源佔比</span></div></div>'+
@@ -639,6 +689,13 @@ function vShop(){
     (Object.keys(S.price).length ? '<button class="linkbtn" data-act="resetprice" style="align-self:flex-start">還原所有自訂價格</button>' : '')+'</section>';
 }
 
+
+function stepPic(r, a){
+  if (a === 'serve') return pic(r);
+  const k = ACTPH[a]; if (k && PH[k]) return '<img src="'+PH[k].f+'" alt="'+(ACT[a] || '')+'">';
+  return scene(a);
+}
+function stepCredit(r, a){ const c = a === 'serve' ? creditLine(r) : ACTPH[a] ? creditOf(ACTPH[a]) : ''; return c ? '<p class="credit" style="margin-top:4px">'+c+'</p>' : ''; }
 let timer = {left:0, int:null, key:'', done:false}, actx = null;
 const mmss = s => String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
 function vCook(){
@@ -654,7 +711,7 @@ function vCook(){
   const order = list.slice().sort((x,y) => y.min - x.min);
   return (list.length > 1 ? '<section class="panel"><h2>先做哪一道</h2><p class="small muted">最花時間的先下鍋，等它的時候做其他菜：</p><p>'+order.map(x => esc(x.n)+'（'+x.min+' 分）').join(' → ')+'</p></section>' : '')+
     '<div class="tabs">'+tabs.map(x => '<button data-act="cooktab" data-id="'+x.id+'" aria-pressed="'+(x === r)+'">'+esc(x.n)+'</button>').join('')+'</div>'+
-    '<section class="panel"><div class="player"><div class="anim">'+scene(a)+'</div><div style="display:flex;flex-direction:column;gap:12px;min-width:0">'+
+    '<section class="panel"><div class="player"><div><div class="anim">'+stepPic(r, a)+'</div>'+stepCredit(r, a)+'</div><div style="display:flex;flex-direction:column;gap:12px;min-width:0">'+
       '<p class="stepno">步驟 '+(S.step+1)+' / '+r.steps.length+' · '+ACT[a]+'</p><p class="steptext">'+esc(s.s)+'</p>'+
       (s.t ? '<div class="timer'+(timer.done ? ' done' : '')+'" id="timer"><span class="num" id="tleft">'+mmss(timer.left)+'</span><button class="btn ghost sm" data-act="timer" id="tbtn">'+(timer.int ? '暫停' : timer.done ? '重新計時' : '開始計時')+'</button></div>' : '')+
       '<div class="stepnav"><button class="btn ghost" data-act="step" data-d="-1"'+(S.step ? '' : ' disabled')+'>上一步</button><button class="btn" data-act="step" data-d="1"'+(S.step < r.steps.length - 1 ? '' : ' disabled')+'>下一步</button></div>'+
@@ -702,12 +759,63 @@ async function askAI(){
   aiCtl = null; render();
 }
 
+
+const frm = $('#frm');
+function ingOptions(){
+  const g = {m:'肉品海鮮',e:'蛋豆',v:'蔬果',d:'乾貨雜糧',s:'調味料'};
+  return '<option value="">選食材…</option>'+Object.keys(g).map(c => '<optgroup label="'+g[c]+'">'+Object.values(ING).filter(i => i.cat === c && !i.custom).map(i => '<option value="'+i.id+'">'+i.n+'</option>').join('')+'</optgroup>').join('')+
+    ((S.customIng || []).length ? '<optgroup label="我加的食材">'+S.customIng.map(i => '<option value="'+i.id+'">'+esc(i.n)+'</option>').join('')+'</optgroup>' : '')+'<option value="__new">＋ 其他（自己輸入）</option>';
+}
+function irow(){
+  return '<div class="irow"><select class="inp isel" aria-label="食材">'+ingOptions()+'</select><input class="inp ig" type="number" inputmode="decimal" min="0" placeholder="每人克數" aria-label="每人克數"><button type="button" class="x" data-act="delrow" aria-label="移除這列">×</button>'+
+    '<div class="cust" hidden><input class="inp cn" placeholder="食材名稱" aria-label="食材名稱"><input class="inp ck" type="number" inputmode="decimal" min="0" placeholder="熱量/100g" aria-label="每100克熱量大卡"><input class="inp cpr" type="number" inputmode="decimal" min="0" placeholder="蛋白質g/100g" aria-label="蛋白質"><input class="inp cf" type="number" inputmode="decimal" min="0" placeholder="脂肪g/100g" aria-label="脂肪"><input class="inp cc" type="number" inputmode="decimal" min="0" placeholder="碳水g/100g" aria-label="碳水"><input class="inp cp" type="number" inputmode="decimal" min="0" placeholder="約幾元/100g" aria-label="每100克價格"></div></div>';
+}
+function openForm(){
+  frm.innerHTML = '<form class="dlg" id="frmf" onsubmit="return false"><div class="dlg-head"><h2 style="font-size:22px">新增我的食譜</h2><button type="button" class="x" data-act="closefrm" aria-label="關閉">×</button></div>'+
+    '<label class="fld"><span>菜名</span><input class="inp" id="f-name" maxlength="24" placeholder="例如：媽媽的滷肉飯"></label>'+
+    '<div class="frow"><label class="fld"><span>類型</span><select class="inp" id="f-cat">'+Object.keys(CATS).map(k => '<option value="'+k+'">'+CATS[k]+'</option>').join('')+'</select></label><label class="fld"><span>全部要幾分鐘</span><input class="inp" id="f-min" type="number" inputmode="numeric" min="5" value="30"></label><label class="fld"><span>其中動手幾分鐘</span><input class="inp" id="f-act" type="number" inputmode="numeric" min="1" value="15"></label></div>'+
+    '<div class="fld"><span>需要的廚具（任選一樣就能做的都勾）</span><div class="opts">'+TOOLS.map(t => '<label class="opt"><input type="checkbox" name="f-tool" value="'+t.id+'"><b>'+t.n+'</b></label>').join('')+'</div></div>'+
+    '<div class="fld"><span>符合的膳食療養目標（選填）</span><div class="opts">'+GOALS.map(g => '<label class="opt"><input type="checkbox" name="f-goal" value="'+g.id+'"><b>'+g.n+'</b></label>').join('')+'</div></div>'+
+    '<div class="fld"><span>食材（每人份的量，採買時會乘以人數）</span><div id="f-ings" style="display:flex;flex-direction:column;gap:8px">'+irow()+irow()+irow()+'</div><button type="button" class="btn ghost sm" data-act="addrow" style="align-self:flex-start">＋ 多一種食材</button><span class="small muted">選「其他」可輸入自己的食材，營養和價格不確定可以留空，留空的部分不會計入。</span></div>'+
+    '<label class="fld"><span>做法（一行一個步驟，寫「煮 10 分鐘」之類會自動出現計時器）</span><textarea class="inp" id="f-steps" placeholder="切好洗淨\n熱鍋下油炒香\n加水煮 10 分鐘"></textarea></label>'+
+    '<label class="fld"><span>一句話備註（選填）</span><input class="inp" id="f-note" maxlength="120" placeholder="例如：外婆教的，多放一點白胡椒"></label>'+
+    '<div class="fld"><span>成品照片（選填）</span><input type="file" accept="image/*" id="f-photo"></div>'+
+    '<p class="warnbox" id="f-err" hidden></p>'+
+    '<div class="dlg-foot"><button type="button" class="btn ghost" data-act="closefrm">取消</button><button type="button" class="btn" data-act="saverecipe">加進菜單</button></div></form>';
+  frm.showModal(); frm.scrollTop = 0;
+}
+async function saveRecipe(){
+  const err = m => { const e = $('#f-err'); e.textContent = m; e.hidden = false; e.scrollIntoView({block:'nearest'}); };
+  const name = $('#f-name').value.trim(); if (!name) return err('請填菜名。');
+  const ing = [], news = [];
+  for (const row of frm.querySelectorAll('.irow')) {
+    const sel = row.querySelector('.isel').value, g = +row.querySelector('.ig').value; if (!sel && !g) continue;
+    if (!sel || !(g > 0)) return err('每一列食材都要選食材並填克數。');
+    if (sel === '__new') {
+      const n = row.querySelector('.cn').value.trim(); if (!n) return err('自己輸入的食材要填名稱。');
+      const v = c => Math.max(0, +row.querySelector(c).value || 0), id = 'c' + Date.now().toString(36) + news.length;
+      const o = {id, n, cat:'v', g:100, pk:'100g', p: Math.max(1, Math.round(v('.cp')) || 20), r:0, st:0, k:v('.ck'), pr:v('.cpr'), f:v('.cf'), c:v('.cc'), fb:0, na:0, custom:1};
+      news.push(o); ing.push([id, g]);
+    } else ing.push([sel, g]);
+  }
+  if (!ing.length) return err('至少要有一種食材。');
+  const steps = parseSteps($('#f-steps').value); if (!steps.length) return err('請寫下做法。');
+  news.forEach(o => { ING[o.id] = o; S.customIng.push(o); });
+  const tools = [...frm.querySelectorAll('input[name=f-tool]:checked')].map(x => x.value);
+  const r = {id:'my' + Date.now().toString(36), mine:1, n:name, cat:$('#f-cat').value, min:clamp(Math.round(+$('#f-min').value) || 30, 5, 600), act:clamp(Math.round(+$('#f-act').value) || 10, 1, 600), tools: tools.length ? tools : TOOLS.map(t => t.id), tags:[...frm.querySelectorAll('input[name=f-goal]:checked')].map(x => x.value), note:$('#f-note').value.trim(), ing, steps};
+  const f = $('#f-photo').files[0];
+  if (f) { try { S.photos[r.id] = await resizeImg(f); } catch (e) { return err('這張照片打不開，換一張試試。'); } }
+  S.mine.push(r); S.picked = (S.picked || []).concat(r.id); S.manual = true;
+  frm.close(); render();
+}
+
 /* 事件 */
 function go(v){ S.view = v; render(); window.scrollTo(0, 0); if (v === 'cook') { try { navigator.wakeLock && navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {} } }
 function toggle(id){ S.picked = S.picked || []; const i = S.picked.indexOf(id); if (i >= 0) S.picked.splice(i, 1); else S.picked.push(id); S.manual = true; }
 const dlg = $('#dlg');
 document.addEventListener('click', e => {
   if (e.target === dlg) { dlg.close(); return; }
+  if (e.target === frm) { frm.close(); return; }
   const b = e.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act, id = b.dataset.id;
   if (a === 'view') { if (dlg.open) dlg.close(); go(b.dataset.v); }
@@ -733,6 +841,13 @@ document.addEventListener('click', e => {
     try { navigator.clipboard.writeText(txt).then(done, fb); } catch (err) { fb(); }
   }
   else if (a === 'resetprice') { S.price = {}; render(); }
+  else if (a === 'newrecipe') openForm();
+  else if (a === 'closefrm') frm.close();
+  else if (a === 'addrow') $('#f-ings').insertAdjacentHTML('beforeend', irow());
+  else if (a === 'delrow') { const rows = frm.querySelectorAll('.irow'); if (rows.length > 1) b.closest('.irow').remove(); }
+  else if (a === 'saverecipe') saveRecipe();
+  else if (a === 'rmphoto') { delete S.photos[id]; dlg.innerHTML = detail(byId(id)); render(); }
+  else if (a === 'delrecipe') { S.mine = (S.mine || []).filter(r => r.id !== id); S.ai = (S.ai || []).filter(r => r.id !== id); S.picked = (S.picked || []).filter(p => p !== id); delete S.photos[id]; if (S.cook === id) S.cook = null; dlg.close(); render(); }
   else if (a === 'ai') askAI();
   else if (a === 'aistop') { if (aiCtl) aiCtl.abort(); }
   else if (a === 'aiclear') { const ids = (S.ai || []).map(r => r.id); S.ai = []; S.picked = (S.picked || []).filter(p => !ids.includes(p)); aiMsg = ''; render(); }
@@ -741,7 +856,10 @@ document.addEventListener('input', e => {
   if (e.target.id === 'budget') { S.budget = +e.target.value; $('#budgetOut').textContent = money(S.budget); $('#perHead').textContent = '平均每人 ' + money(S.budget / S.people); }
 });
 document.addEventListener('change', e => {
-  const t = e.target, auto = () => { if (!S.manual) S.picked = null; };
+  const t = e.target;
+  if (t.classList && t.classList.contains('isel')) { t.closest('.irow').querySelector('.cust').hidden = t.value !== '__new'; return; }
+  if (t.id === 'up-photo') { const f = t.files[0], id = t.dataset.id; if (f) resizeImg(f).then(u => { S.photos[id] = u; dlg.innerHTML = detail(byId(id)); render(); }).catch(() => {}); return; }
+  const auto = () => { if (!S.manual) S.picked = null; };
   if (t.id === 'budget') { S.budget = +t.value; auto(); render(); }
   else if (t.name === 'store') { S.store = t.value; auto(); render(); }
   else if (t.name === 'time') { S.time = +t.value; auto(); render(); }
@@ -750,5 +868,6 @@ document.addEventListener('change', e => {
   else if (t.dataset.ing) { const ing = ING[t.dataset.ing]; if (ing.st) S.need[ing.id] = t.checked; else S.skip[ing.id] = !t.checked; render(); }
   else if (t.dataset.price) { const v = Math.round(+t.value), k = S.store + ':' + t.dataset.price; if (v > 0) S.price[k] = v; else delete S.price[k]; render(); }
 });
+$('#credits').innerHTML = '<summary>照片來源與授權</summary><ul>'+Object.keys(PH).map(k => '<li>'+creditOf(k).replace('照片：','')+'</li>').join('')+'</ul><p class="credit">照片來自 Wikimedia Commons，依各自的創用 CC 授權使用。動作示意圖是一般的廚房照片，不是這道菜的實際步驟。</p>';
 render();
 </script>
