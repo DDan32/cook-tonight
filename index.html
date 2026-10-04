@@ -1,0 +1,722 @@
+<title>今晚煮什麼</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+/* Layout: one column of working panels under a 4-stop stepper (設定 → 菜單 → 採買 → 下廚).
+   Prices show as yellow shelf tags; the shopping list is set like a till receipt. */
+:root{
+  --bg:#e9efec; --surface:#fbfdfc; --ink:#15221d; --muted:#566962; --line:#c9d6d0;
+  --accent:#1b7758; --accent-ink:#ffffff; --accent-soft:#d8ebe3;
+  --tag:#ffd630; --tag-ink:#b9221a; --warn:#a93b0c; --warn-soft:#fbe6da;
+  --flame:#ee7325; --steel:#b3c2bb; --wood:#d4ab78; --veg:#4d9e58; --water:#84c3d5;
+  --c-pro:#1b7758; --c-fat:#d9990f; --c-carb:#4a7dcc;
+  --f-display:'Huninn','Noto Sans TC','PingFang TC','Microsoft JhengHei',sans-serif;
+  --f-body:'Noto Sans TC',system-ui,-apple-system,'PingFang TC','Microsoft JhengHei',sans-serif;
+  --f-num:'Barlow Condensed','Arial Narrow',system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#0f1715; --surface:#17211e; --ink:#e4eeea; --muted:#98ada5; --line:#2a3934;
+  --accent:#5cc79f; --accent-ink:#06201a; --accent-soft:#1d3a30;
+  --tag:#f3c91c; --tag-ink:#8c150e; --warn:#f0946a; --warn-soft:#3a2219;
+  --flame:#f58a45; --steel:#5d6e68; --wood:#8a6a44; --veg:#62b56d; --water:#4f97ab;
+  --c-pro:#5cc79f; --c-fat:#e6b33c; --c-carb:#7ea6ea; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#0f1715; --surface:#17211e; --ink:#e4eeea; --muted:#98ada5; --line:#2a3934;
+  --accent:#5cc79f; --accent-ink:#06201a; --accent-soft:#1d3a30;
+  --tag:#f3c91c; --tag-ink:#8c150e; --warn:#f0946a; --warn-soft:#3a2219;
+  --flame:#f58a45; --steel:#5d6e68; --wood:#8a6a44; --veg:#62b56d; --water:#4f97ab;
+  --c-pro:#5cc79f; --c-fat:#e6b33c; --c-carb:#7ea6ea; color-scheme:dark }
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6}
+.wrap{max-width:860px;margin:0 auto;padding-inline:16px;padding-block:20px 120px;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3,p{margin:0}
+h1{font-family:var(--f-display);font-size:30px;line-height:1.2;letter-spacing:.02em}
+h2{font-family:var(--f-display);font-size:18px;line-height:1.3;text-wrap:balance}
+h3{font-size:16px;font-weight:700;line-height:1.35}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.muted{color:var(--muted)} .small{font-size:13px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 16px}
+.top p{color:var(--muted);max-width:34em}
+.term{font-size:13px;border:1px solid var(--line);border-radius:999px;padding:3px 12px;background:var(--surface);white-space:nowrap}
+.term b{color:var(--accent)}
+
+.steps{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--bg);padding-block:6px}
+.steps button{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 4px;display:flex;align-items:center;justify-content:center;gap:6px;font-weight:500;min-width:0}
+.steps button i{font-style:normal;font-family:var(--f-num);font-weight:700;font-size:17px;color:var(--muted)}
+.steps button[aria-current="step"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.steps button[aria-current="step"] i{color:inherit}
+
+#view{display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel > header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 12px}
+.trio{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+
+.opts{display:flex;flex-wrap:wrap;gap:8px}
+.opt{position:relative;border:1px solid var(--line);border-radius:10px;padding:8px 12px;background:var(--bg);display:flex;flex-direction:column;line-height:1.3;cursor:pointer;min-width:0}
+.opt input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.opt b{font-weight:700}.opt small{color:var(--muted);font-size:12px}
+.opt:has(input:checked){background:var(--accent-soft);border-color:var(--accent)}
+.opt:has(input:checked) b{color:var(--accent)}
+.opt:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.stores{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+
+.budget{display:flex;align-items:center;gap:12px}
+.budget input[type=range]{flex:1;min-width:0;accent-color:var(--accent)}
+.big{font-family:var(--f-num);font-weight:700;font-size:34px;line-height:1;font-variant-numeric:tabular-nums}
+.stepper{display:flex;align-items:center;gap:12px}
+.stepper button{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--bg);font-size:20px;line-height:1}
+.note{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:14px}
+.note b{color:var(--accent)}
+.warnbox{background:var(--warn-soft);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:14px}
+ul.tips{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px}
+
+.btn{border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);border-radius:10px;padding:9px 16px;font-weight:700;white-space:nowrap}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn.sm{padding:5px 12px;font-size:14px}
+.btn.on{background:var(--accent-soft);color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:default}
+.linkbtn{border:0;background:none;color:var(--accent);text-decoration:underline;padding:0;font-size:13px}
+
+.tag{display:inline-flex;align-items:baseline;gap:1px;background:var(--tag);color:var(--tag-ink);font-family:var(--f-num);font-weight:700;font-size:22px;line-height:1;padding:4px 8px 5px;border-radius:3px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tag small{font-size:12px;font-family:var(--f-body);font-weight:700}
+.chip{display:inline-block;font-size:12px;line-height:1.5;border-radius:999px;padding:0 8px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.hit{background:var(--accent-soft);border-color:transparent;color:var(--accent);font-weight:700}
+.chip.ai{border-color:var(--c-carb);color:var(--c-carb)}
+
+.cards{display:flex;flex-direction:column;gap:10px}
+.card{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.card.picked{border-color:var(--accent);box-shadow:inset 4px 0 0 var(--accent)}
+.card.dim{opacity:.6}
+.card-main{min-width:0;display:flex;flex-direction:column;gap:4px;text-align:left;border:0;background:none;padding:0}
+.card-main h3{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.card-main .meta{color:var(--muted);font-size:13px}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.card-side{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.statrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.stat{display:flex;flex-direction:column;gap:2px;min-width:0}
+.stat .lbl{font-size:12px;color:var(--muted)}
+.stat .val{font-family:var(--f-num);font-weight:700;font-size:26px;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .val small{font-family:var(--f-body);font-size:12px;font-weight:400;color:var(--muted)}
+.meter{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.meter i{display:block;height:100%;background:var(--accent);border-radius:3px}
+.meter.over i{background:var(--warn)}
+
+.macro{display:flex;height:14px;border-radius:7px;overflow:hidden;background:var(--line)}
+.macro i{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:13px;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;background:var(--k)}
+table.nt{width:100%;border-collapse:collapse;font-size:14px}
+table.nt td{padding:5px 0;border-top:1px solid var(--line);vertical-align:middle}
+table.nt td:nth-child(2){text-align:right;font-family:var(--f-num);font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;padding-right:10px;white-space:nowrap}
+table.nt td:nth-child(3){width:38%}
+table.nt td:nth-child(4){text-align:right;width:3.2em;color:var(--muted);font-size:12px}
+table.ing{width:100%;border-collapse:collapse;font-size:14px}
+table.ing td{padding:4px 0;border-top:1px dashed var(--line)}
+table.ing td:last-child{text-align:right;white-space:nowrap}
+ol.plain{margin:0;padding-left:1.4em;display:flex;flex-direction:column;gap:6px}
+
+dialog{border:1px solid var(--line);border-radius:16px;background:var(--surface);color:var(--ink);padding:0;width:min(640px,calc(100vw - 24px));max-height:calc(100vh - 32px)}
+dialog::backdrop{background:rgba(8,16,13,.55)}
+.dlg{padding:18px;display:flex;flex-direction:column;gap:14px}
+.dlg-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.dlg-foot{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;position:sticky;bottom:0;background:var(--surface);padding-top:8px}
+.x{border:1px solid var(--line);background:var(--bg);border-radius:50%;width:34px;height:34px;flex:none;font-size:18px;line-height:1}
+.kcal{display:flex;align-items:baseline;gap:6px}
+
+.receipt{background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:18px 16px;display:flex;flex-direction:column;gap:10px;border-top:3px dashed var(--line);border-bottom:3px dashed var(--line)}
+.receipt h2{text-align:center}
+.receipt .head{text-align:center;color:var(--muted);font-size:13px}
+.grp{font-size:12px;letter-spacing:.2em;color:var(--muted);border-bottom:1px dashed var(--line);padding-top:6px}
+.row{display:grid;grid-template-columns:auto 1fr auto auto;gap:4px 10px;align-items:center}
+.row input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent);margin:0}
+.row .nm{min-width:0}
+.row .nm b{font-weight:500}
+.row .nm small{display:block;color:var(--muted);font-size:12px;line-height:1.5}
+.row .nm a{color:var(--accent)}
+.row.off .nm b{text-decoration:line-through;color:var(--muted)}
+.row.off .sub{color:var(--muted)}
+.pin{display:inline-flex;align-items:center;gap:2px;background:var(--tag);color:var(--tag-ink);border-radius:3px;padding:0 6px;font-family:var(--f-num);font-weight:700}
+.pin input{width:3.2em;border:0;background:transparent;color:inherit;font:inherit;font-size:18px;text-align:right;padding:2px 0;-moz-appearance:textfield;font-variant-numeric:tabular-nums}
+.pin input::-webkit-outer-spin-button,.pin input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.row .sub{font-family:var(--f-num);font-weight:700;font-size:18px;min-width:3.2em;text-align:right;font-variant-numeric:tabular-nums}
+.src{font-size:11px;border-radius:3px;padding:0 4px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.src.real{border-color:var(--accent);color:var(--accent)}
+.src.own{border-color:var(--c-carb);color:var(--c-carb)}
+.total{display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid var(--ink);padding-top:8px;font-weight:700}
+.total .num{font-size:30px;font-weight:700}
+details summary{cursor:pointer;font-weight:500}
+textarea.copy{width:100%;min-height:160px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:13px/1.5 var(--f-body);padding:8px}
+
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
+.tabs button{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 14px}
+.tabs button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.player{display:grid;grid-template-columns:minmax(0,240px) minmax(0,1fr);gap:16px;align-items:center}
+@media (max-width:560px){.player{grid-template-columns:1fr}}
+.anim{background:var(--bg);border-radius:14px;aspect-ratio:8/5;max-width:100%;display:grid;place-items:center;overflow:hidden}
+.anim svg{width:100%;height:100%;display:block}
+.stepno{font-size:13px;color:var(--muted);letter-spacing:.08em}
+.steptext{font-size:19px;line-height:1.6;font-weight:500}
+.timer{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.timer .num{font-size:34px;font-weight:700;line-height:1}
+.timer.done .num{color:var(--warn)}
+.stepnav{display:flex;gap:8px}
+.stepnav .btn{flex:1}
+ol.all{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+ol.all button{width:100%;text-align:left;border:0;background:none;border-radius:8px;padding:6px 8px;display:grid;grid-template-columns:3.4em 1fr;gap:8px;color:var(--muted)}
+ol.all button[aria-current="true"]{background:var(--accent-soft);color:var(--ink)}
+ol.all button span:first-child{font-size:12px;color:var(--accent);font-weight:700;padding-top:2px}
+
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px))}
+.bar > div{max-width:828px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.bar p{font-size:13px;color:var(--muted);min-width:0}
+.bar p b{color:var(--ink)}
+.bar p b.over{color:var(--warn)}
+
+/* step animations */
+.anim svg *{transform-box:fill-box}
+.f-ink{fill:var(--ink)}.f-acc{fill:var(--accent)}.f-tag{fill:var(--tag)}.f-surf{fill:var(--surface)}.f-steel{fill:var(--steel)}
+.f-wood{fill:var(--wood)}.f-veg{fill:var(--veg)}.f-car{fill:var(--flame)}.f-flame{fill:var(--flame)}.f-water{fill:var(--water)}
+.st{fill:none;stroke:var(--muted);stroke-width:4;stroke-linecap:round}
+.st-ink{fill:none;stroke:var(--ink);stroke-width:4;stroke-linecap:round}
+.st-fl{fill:none;stroke:var(--flame);stroke-width:3;stroke-linecap:round}
+.knife{animation:chop .45s ease-in infinite alternate}
+@keyframes chop{to{transform:translateY(24px)}}
+.sl rect{animation:pop 1.8s steps(1) infinite}
+.sl rect:nth-child(2){animation-delay:.45s}.sl rect:nth-child(3){animation-delay:.9s}
+@keyframes pop{0%{opacity:0}25%,100%{opacity:1}}
+.flames path{transform-origin:50% 100%;animation:flick .4s ease-in-out infinite alternate}
+.flames path:nth-child(2){animation-delay:.15s}.flames path:nth-child(3){animation-delay:.3s}
+@keyframes flick{to{transform:scaleY(.55)}}
+.bits circle{animation:toss .5s ease-out infinite alternate}
+.bits circle:nth-child(2){animation-delay:.12s}.bits circle:nth-child(3){animation-delay:.24s}.bits circle:nth-child(4){animation-delay:.36s}
+@keyframes toss{to{transform:translateY(-28px)}}
+.bub circle{animation:bub 1.2s ease-in infinite}
+.bub circle:nth-child(2){animation-delay:.4s}.bub circle:nth-child(3){animation-delay:.8s}
+@keyframes bub{0%{transform:translateY(10px) scale(.3);opacity:0}40%{opacity:1}100%{transform:translateY(-12px) scale(1);opacity:0}}
+.steam path{animation:steam 2s linear infinite}
+.steam path:nth-child(2){animation-delay:.6s}.steam path:nth-child(3){animation-delay:1.2s}
+@keyframes steam{0%{transform:translateY(10px);opacity:0}40%{opacity:.85}100%{transform:translateY(-12px);opacity:0}}
+.lamp{fill:var(--flame);animation:blink 1.2s steps(1) infinite}
+@keyframes blink{50%{opacity:.25}}
+.glow{fill:var(--flame);animation:glow 1.4s ease-in-out infinite alternate}
+@keyframes glow{from{opacity:.25}to{opacity:.9}}
+.fan{transform-origin:center;animation:spin .9s linear infinite}
+.hand{transform-origin:50% 100%;animation:spin 5s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.dish{transform-origin:center;animation:wob 1.6s ease-in-out infinite alternate}
+@keyframes wob{from{transform:scaleX(1)}to{transform:scaleX(.55)}}
+.stir{transform-origin:50% 100%;animation:stir 1s ease-in-out infinite alternate}
+@keyframes stir{from{transform:translateX(-22px) rotate(-10deg)}to{transform:translateX(22px) rotate(10deg)}}
+.drops circle{animation:drop .9s ease-in infinite}
+.drops circle:nth-child(2){animation-delay:.3s}.drops circle:nth-child(3){animation-delay:.6s}
+@keyframes drop{0%{transform:translateY(0);opacity:0}20%{opacity:1}100%{transform:translateY(42px);opacity:0}}
+.spark{transform-origin:center;animation:tw 1s ease-in-out infinite alternate}
+@keyframes tw{from{transform:scale(.3);opacity:.3}to{transform:scale(1);opacity:1}}
+@media (prefers-reduced-motion: reduce){.anim svg *{animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>今晚煮什麼</h1>
+      <p>說好去哪買、花多少、幾個人吃、多久要上桌，就幫你配菜、列清單，再一步一步帶著做。</p>
+    </div>
+    <span class="term" id="term"></span>
+  </header>
+  <nav class="steps" id="nav" aria-label="流程"></nav>
+  <main id="view"></main>
+</div>
+<div class="bar" id="bar" hidden></div>
+<dialog id="dlg"></dialog>
+
+<script>
+/*DATA-START*/
+const PRICE_DATE = '2026/10/04';
+// 食材：包裝克數、萬家福線上購物售價（r=1 為實查，0 為估算）、st=1 為家中常備；營養為每 100g
+const ING = {};
+const I = (id,n,cat,g,pk,p,r,st,nut,ex) => { ING[id] = Object.assign({id,n,cat,g,pk,p,r,st,k:nut[0],pr:nut[1],f:nut[2],c:nut[3],fb:nut[4],na:nut[5]}, ex||{}); };
+I('chicken_breast','雞胸肉','m',300,'300g',90,1,0,[104,22.4,0.9,0,0,45]);
+I('chicken_thigh','去骨雞腿排','m',190,'190g',95,1,0,[160,18.5,9,0,0,80]);
+I('chicken_leg','帶骨雞腿切塊','m',600,'600g',220,1,0,[120,13,7.5,0,0,60]);
+I('pork_mince','豬絞肉','m',300,'300g',105,1,0,[160,19.5,9,0,0,55]);
+I('pork_rib','豬小排','m',330,'330g',165,1,0,[200,13,16,0,0,50]);
+I('beef','牛肉絲','m',200,'200g',143,1,0,[130,20.5,5,0.5,0,55]);
+I('tilapia','鯛魚片','m',500,'500g',209,1,0,[105,18.5,3,0.5,0,45]);
+I('salmon','鮭魚切片','m',270,'270g',179,1,0,[200,20,13,0,0,50]);
+I('shrimp','白蝦仁','m',450,'450g',389,1,0,[60,13,0.5,0.5,0,250]);
+I('clam','蛤蜊（帶殼）','m',600,'600g',130,0,0,[12,2.2,0.2,0.8,0,130]);
+I('egg','雞蛋','e',550,'10 顆',99,1,0,[135,12.5,9,1.6,0,135],{u:['顆',55]});
+I('tofu_soft','嫩豆腐','e',300,'300g 盒',15,1,0,[51,4.9,2.6,2,0.4,30]);
+I('edamame','冷凍毛豆仁','e',400,'1 包',95,1,0,[125,13.8,3,11,6,10]);
+I('tomato','牛番茄','v',500,'500g 盒',135,1,0,[19,0.8,0.1,4.1,1,2]);
+I('broccoli','青花菜','v',400,'2 顆約 400g',99,1,0,[28,3.7,0.2,4.4,3.1,15]);
+I('cabbage','高麗菜','v',1000,'1 顆約 1kg',79,1,0,[23,1.3,0.1,4.8,1.1,12]);
+I('spinach','菠菜','v',250,'250g 袋',45,0,0,[18,2.2,0.3,2.4,1.9,43]);
+I('loofah','絲瓜','v',400,'1 條約 400g',69,1,0,[19,1.1,0.1,4,1,0]);
+I('cucumber','小黃瓜','v',300,'300g 盒',45,1,0,[13,0.9,0.2,2.4,1.3,5]);
+I('bokchoy','青江菜','v',250,'250g 袋',30,1,0,[13,1.3,0.1,2.1,1.4,40]);
+I('onion','洋蔥','v',1000,'1kg 袋',69,1,0,[42,1,0.1,10,1.3,2]);
+I('carrot','紅蘿蔔','v',1000,'1kg 袋',58,1,0,[39,1,0.1,8.9,2.7,70]);
+I('potato','馬鈴薯','v',500,'500g 袋',69,1,0,[77,2.6,0.2,15.8,1.3,5]);
+I('yam','山藥','v',300,'300g',99,1,0,[67,2,0.1,13,1,6]);
+I('sweet_potato','地瓜','v',600,'600g 包',69,1,0,[115,1.3,0.2,27.8,2.5,45]);
+I('zucchini','櫛瓜','v',500,'500g 包',88,1,0,[15,1.5,0.1,2.5,0.9,1]);
+I('pepper','彩椒','v',300,'300g 盒',88,1,0,[30,0.9,0.2,6.5,1.7,2]);
+I('shiitake','鮮香菇','v',350,'350g 包',88,1,0,[39,3,0.1,7.6,3.8,1]);
+I('shimeji','鴻喜菇','v',120,'120g 包',30,1,0,[30,2.7,0.1,5,2.2,3]);
+I('basil','九層塔','v',50,'1 把約 50g',25,0,0,[28,3,0.4,4,3,5]);
+I('scallion','青蔥','v',200,'200g 袋',59,1,0,[27,1.5,0.2,5.5,2.4,5],{u:['根',15]});
+I('lemon','檸檬','v',500,'5–6 顆',65,1,0,[33,0.7,0.5,7.5,1.2,2]);
+I('ginger','老薑','v',300,'300g 袋',109,1,1,[50,1,0.5,10,2,5]);
+I('garlic','蒜仁','v',120,'120g 包',99,1,1,[120,6.7,0.2,26,4,5],{u:['瓣',5]});
+I('sishen','四神湯料包','d',150,'1 包約 150g',89,0,0,[350,10,2,72,3,10]);
+I('white_fungus','白木耳（乾）','d',60,'1 包',105,1,0,[290,8,0.5,70,60,30]);
+I('lotus','蓮子','d',150,'1 包',109,1,0,[330,17,2,62,8,5]);
+I('curry','咖哩塊','d',230,'230g 盒',115,1,0,[510,6,35,42,2,4200],{u:['小塊',19]});
+I('miso','味噌','d',500,'500g',57,1,0,[200,11,5,28,4,4300],{sp:6});
+I('wakame','乾海帶芽','d',55,'55g',72,1,0,[140,15,2,40,30,6000]);
+I('red_date','紅棗','d',150,'1 包',79,1,1,[280,3,0.4,70,7,10],{u:['顆',3]});
+I('goji','枸杞','d',200,'200g',540,1,1,[340,12,1.5,72,13,300]);
+I('rice','白米','d',2000,'2kg',169,1,1,[355,7,0.6,78,0.5,2]);
+I('brown_rice','糙米','d',1500,'1.5kg',188,1,1,[355,7.8,2.4,75,3.5,3]);
+I('oil','沙拉油','s',550,'600ml',55,1,1,[884,0,100,0,0,0],{sp:4.5});
+I('salt','鹽','s',300,'300g',50,1,1,[0,0,0,0,0,39000],{sp:5});
+I('soy','醬油','s',575,'500ml',59,1,1,[90,8,0,14,0,5600],{sp:5.5});
+I('rice_wine','料理米酒','s',580,'600ml',50,0,1,[60,0,0,0,0,5],{sp:5});
+I('black_sesame_oil','黑麻油','s',460,'500ml',144,1,1,[884,0,100,0,0,0],{sp:4.5});
+I('sesame_oil','香油','s',185,'1 瓶',35,1,1,[884,0,100,0,0,0],{sp:4.5});
+I('doubanjiang','辣豆瓣醬','s',500,'500g',110,1,1,[130,6,5,14,3,5500],{sp:6});
+I('starch','太白粉','s',400,'400g',42,1,1,[340,0,0,84,0,5],{sp:3});
+I('white_pepper','白胡椒粉','s',30,'30g',58,1,1,[300,10,2,65,25,10]);
+I('mirin','味醂','s',580,'500ml',58,1,1,[230,0.3,0,55,0,100],{sp:6});
+I('sugar','砂糖','s',500,'500g',21,1,1,[387,0,0,100,0,0],{sp:4});
+I('rock_sugar','冰糖','s',600,'600g',58,1,1,[387,0,0,100,0,0],{sp:5});
+I('sesame_paste','芝麻醬','s',200,'1 罐',79,1,1,[620,20,55,18,8,20],{sp:5.5});
+I('vinegar','白醋','s',600,'600ml',43,1,1,[20,0,0,1,0,5],{sp:5});
+
+// 食譜：ing 為每人份公克；steps 的 a 對應動畫、t 為計時秒數
+const R = [
+{id:'garlic_chicken',n:'蒜香雞胸青花菜',cat:'main',min:20,act:20,tools:['wok'],tags:['muscle','slim','sugar','bp','heart'],
+ note:'雞胸是蛋白質最高、脂肪最低的肉類之一；青花菜補上膳食纖維與維生素 C。',
+ ing:[['chicken_breast',150],['broccoli',120],['garlic',8],['oil',7],['salt',1],['rice_wine',5],['white_pepper',0.2]],
+ steps:[{a:'chop',s:'雞胸逆紋切成 1 公分厚片，青花菜切小朵，蒜切末。'},{a:'marinate',s:'雞胸加米酒、一半的鹽和白胡椒抓勻，醃 10 分鐘。',t:600},{a:'boil',s:'鍋中水煮滾，青花菜燙 1 分半撈起瀝乾，把水倒掉。',t:90},{a:'fry',s:'熱鍋下油，雞胸片平鋪不要疊，中火每面煎 2 分鐘到金黃。',t:240},{a:'fry',s:'下蒜末炒香，倒回青花菜，加剩下的鹽拌炒 30 秒起鍋。',t:30}]},
+{id:'steamed_fish',n:'蔥薑蒸鯛魚',cat:'main',min:20,act:8,tools:['dianguo','microwave'],tags:['slim','muscle','heart','bp','sugar'],
+ note:'清蒸幾乎不用油，鯛魚低脂好消化，術後恢復或腸胃弱時也適合。',
+ ing:[['tilapia',160],['scallion',15],['ginger',8],['soy',8],['rice_wine',5],['sesame_oil',2]],
+ steps:[{a:'chop',s:'蔥、薑切細絲；魚片擦乾放進有深度的盤子，淋上米酒。'},{a:'steam',s:'魚片鋪上一半薑絲。電鍋外鍋 1 杯水，蒸約 12 分鐘。（微波爐：蓋上耐熱蓋，600W 約 4 分鐘）',t:720},{a:'mix',s:'倒掉盤裡蒸出的湯水（腥味都在這），鋪上蔥絲和剩下的薑絲，淋醬油。'},{a:'serve',s:'淋上香油，趁熱上桌。'}]},
+{id:'salmon_veg',n:'鮭魚烤時蔬',cat:'main',min:25,act:8,tools:['airfryer','oven'],tags:['heart','muscle','sugar','bp'],
+ note:'鮭魚富含 Omega-3（EPA、DHA），有助降低三酸甘油酯；一週吃兩次魚最理想。',
+ ing:[['salmon',135],['zucchini',100],['pepper',60],['onion',50],['lemon',15],['oil',5],['salt',1],['white_pepper',0.2]],
+ steps:[{a:'chop',s:'櫛瓜切厚片，彩椒和洋蔥切塊，拌入油和一半的鹽。'},{a:'marinate',s:'鮭魚擦乾，兩面抹上剩下的鹽與白胡椒。'},{a:'airfry',s:'蔬菜鋪底、鮭魚皮朝上放在上面。氣炸鍋 180°C 烤 12 分鐘。（烤箱：200°C 約 18 分鐘）',t:720},{a:'serve',s:'擠上檸檬汁，連同蔬菜盛盤。'}]},
+{id:'beef_spinach',n:'牛肉炒菠菜',cat:'main',min:20,act:12,tools:['wok'],tags:['iron','sugar','slim','bp'],
+ note:'牛肉的血基質鐵吸收率高，菠菜補葉酸；配番茄或擠點檸檬，鐵質更好吸收。',
+ ing:[['beef',100],['spinach',125],['garlic',6],['soy',6],['rice_wine',5],['starch',2],['oil',7]],
+ steps:[{a:'marinate',s:'牛肉絲加醬油、米酒、太白粉抓勻，醃 10 分鐘。',t:600},{a:'wash',s:'菠菜洗淨切段，梗和葉分開放；蒜切片。'},{a:'fry',s:'熱鍋下油，牛肉絲大火炒到七分熟（還帶一點粉紅）先盛起。',t:60},{a:'fry',s:'原鍋爆香蒜片，先炒菠菜梗 30 秒，再下葉子炒到變軟。',t:60},{a:'fry',s:'牛肉回鍋拌炒 20 秒，試味道後起鍋。',t:20}]},
+{id:'sanbei',n:'三杯雞',cat:'main',min:30,act:15,tools:['wok'],tags:['warm','muscle'],
+ note:'黑麻油與老薑性溫，傳統用來祛寒暖身。醬汁鈉含量高，控血壓的人少淋醬。',
+ ing:[['chicken_thigh',170],['ginger',12],['garlic',10],['basil',10],['black_sesame_oil',8],['soy',14],['rice_wine',15],['sugar',3]],
+ steps:[{a:'chop',s:'雞腿排切塊，薑切片，蒜去皮保留整粒，九層塔摘下葉子。'},{a:'fry',s:'冷鍋放黑麻油和薑片，小火慢慢煸到薑片邊緣捲起（火太大麻油會苦）。',t:180},{a:'fry',s:'下蒜粒和雞塊，轉中火煎炒到表面金黃。',t:300},{a:'boil',s:'加醬油、米酒、糖拌勻，蓋上鍋蓋小火燜 10 分鐘。',t:600},{a:'fry',s:'開蓋轉大火把醬汁收到發亮，下九層塔拌兩下就起鍋。',t:90}]},
+{id:'mapo',n:'麻婆豆腐',cat:'main',min:20,act:15,tools:['wok'],tags:['sugar'],
+ note:'豆腐的大豆蛋白有助降低膽固醇。怕鹹或控血壓時豆瓣醬減半，改加番茄丁提味。',
+ ing:[['tofu_soft',150],['pork_mince',50],['garlic',5],['scallion',8],['doubanjiang',8],['soy',4],['oil',6],['starch',3]],
+ steps:[{a:'chop',s:'豆腐切 2 公分丁，蒜切末、蔥切花；太白粉加兩倍的水調勻。'},{a:'boil',s:'豆腐丁放進滾水泡 2 分鐘再撈起瀝乾，之後比較不容易碎。',t:120},{a:'fry',s:'熱鍋下油，絞肉炒到變色出油，加蒜末和辣豆瓣醬炒出紅油。',t:120},{a:'boil',s:'加醬油和水（每人約 60ml）煮滾，放入豆腐，小火燒 3 分鐘入味。',t:180},{a:'mix',s:'淋入太白粉水，用鍋鏟背輕推勾芡，撒蔥花。'}]},
+{id:'lemon_chicken',n:'檸檬雞腿排烤地瓜',cat:'main',min:30,act:8,tools:['airfryer','oven'],tags:['muscle'],
+ note:'不用另外加油，雞皮的油脂還會被逼出來；地瓜當主食，纖維比白飯多。',
+ ing:[['chicken_thigh',190],['sweet_potato',120],['lemon',20],['garlic',5],['salt',1],['white_pepper',0.3]],
+ steps:[{a:'marinate',s:'雞腿排用叉子戳幾個洞，抹上鹽、白胡椒、蒜末，擠一半的檸檬汁，醃 10 分鐘。',t:600},{a:'chop',s:'地瓜刷洗乾淨，帶皮切 1.5 公分厚片。'},{a:'airfry',s:'雞皮朝下，和地瓜一起放入。氣炸鍋 180°C 烤 10 分鐘。（烤箱：200°C 15 分鐘）',t:600},{a:'airfry',s:'把雞腿翻面讓皮朝上，200°C 再烤 6 分鐘到皮脆。',t:360},{a:'rest',s:'取出靜置 3 分鐘再切，肉汁才不會流掉；擠上剩下的檸檬汁。',t:180}]},
+{id:'edamame_shrimp',n:'毛豆蝦仁炒蛋',cat:'main',min:15,act:15,tools:['wok'],tags:['muscle','sugar','slim','bp'],
+ note:'蛋、蝦仁、毛豆三種蛋白質一次到位，幾乎不含澱粉，控糖和增肌都合適。',
+ ing:[['egg',82],['shrimp',70],['edamame',50],['scallion',5],['oil',6],['salt',0.6]],
+ steps:[{a:'wash',s:'蝦仁解凍後擦乾；毛豆仁沖水退冰；蛋加鹽打散，蔥切花。'},{a:'fry',s:'熱鍋下一半的油，蝦仁炒到變紅捲起，加毛豆炒 1 分鐘後盛出。',t:120},{a:'fry',s:'補上剩下的油，倒入蛋液，邊緣一凝固就往中間推。',t:40},{a:'fry',s:'蛋七分熟時倒回蝦仁和毛豆，拌炒 20 秒，撒蔥花起鍋。',t:20}]},
+{id:'chicken_cucumber',n:'涼拌雞絲小黃瓜',cat:'main',min:25,act:10,tools:['dianguo','pot','microwave'],tags:['slim','muscle','sugar','bp','heart'],
+ note:'雞胸用蒸的保持多汁，芝麻醬提供不飽和脂肪。天氣熱、沒胃口時很下飯。',
+ ing:[['chicken_breast',100],['cucumber',100],['garlic',4],['sesame_paste',10],['soy',6],['vinegar',5],['sesame_oil',2],['salt',0.3]],
+ steps:[{a:'steam',s:'雞胸放盤子裡，電鍋外鍋 1 杯水蒸 12 分鐘。（湯鍋：水滾後放入，關火加蓋燜 12 分鐘）',t:720},{a:'chop',s:'小黃瓜用刀面拍裂再切段，加鹽抓一下，5 分鐘後把出的水倒掉。',t:300},{a:'mix',s:'芝麻醬加醬油、白醋、蒜末、香油和 1 大匙冷開水，攪到滑順。'},{a:'mix',s:'雞胸放涼後順著紋路撕成絲，和小黃瓜一起拌進醬汁。'}]},
+{id:'curry',n:'雞肉蔬菜咖哩飯',cat:'bowl',min:40,act:15,tools:['pot'],tags:[],
+ note:'一鍋有肉、有菜、有澱粉。咖哩塊的鈉和油偏高，控血壓者用量減三分之一、多放洋蔥補甜味。',
+ ing:[['chicken_thigh',95],['potato',80],['carrot',50],['onion',60],['curry',19],['oil',4],['rice',80]],
+ steps:[{a:'wash',s:'先洗米煮飯（米和水 1:1.1），煮飯的時間剛好做咖哩。'},{a:'chop',s:'雞腿排切塊；馬鈴薯、紅蘿蔔切滾刀塊，洋蔥切絲。'},{a:'fry',s:'湯鍋下油，洋蔥炒到透明，加雞肉炒到表面變白。',t:240},{a:'boil',s:'加入馬鈴薯、紅蘿蔔和水（每人約 200ml），煮滾後轉小火煮 15 分鐘。',t:900},{a:'mix',s:'關火，放入咖哩塊攪到完全融化，再開小火煮 5 分鐘到濃稠。',t:300},{a:'serve',s:'白飯盛盤，淋上咖哩。'}]},
+{id:'oyakodon',n:'親子丼',cat:'bowl',min:25,act:12,tools:['wok','pot'],tags:['muscle'],
+ note:'雞腿加蛋，一碗就有足夠的蛋白質。醬汁不要全淋在飯上，可以少吃不少鈉。',
+ ing:[['chicken_thigh',95],['egg',82],['onion',50],['scallion',5],['soy',12],['mirin',12],['rice',80]],
+ steps:[{a:'wash',s:'先洗米煮飯（米和水 1:1.1）。'},{a:'chop',s:'雞腿排切一口大小，洋蔥切絲，蔥切花；蛋稍微打幾下，蛋白蛋黃不用完全混勻。'},{a:'boil',s:'鍋中放醬油、味醂和水（每人約 60ml），加洋蔥煮 2 分鐘。',t:120},{a:'boil',s:'放入雞肉，中小火煮 5 分鐘到熟透。',t:300},{a:'boil',s:'淋入三分之二的蛋液，蓋鍋 30 秒；再淋剩下的蛋液，10 秒後關火。',t:40},{a:'serve',s:'整鍋滑到熱飯上，撒蔥花。'}]},
+{id:'tomato_egg',n:'番茄炒蛋',cat:'side',min:15,act:15,tools:['wok'],tags:['slim','gout','bp'],
+ note:'番茄的茄紅素遇油加熱更好吸收；蛋和蔬菜普林低，尿酸高的人也能安心吃。',
+ ing:[['tomato',150],['egg',82],['scallion',10],['oil',7],['sugar',2],['salt',0.8]],
+ steps:[{a:'chop',s:'番茄切塊，蔥切蔥花；蛋加一小撮鹽打散。'},{a:'fry',s:'熱鍋下油，倒入蛋液，半凝固時大塊推炒，盛起備用。',t:60},{a:'fry',s:'原鍋炒番茄，加糖和 2 大匙水，中火煮到出汁變軟。',t:180},{a:'fry',s:'蛋回鍋拌勻，加剩下的鹽調味，撒蔥花起鍋。',t:30}]},
+{id:'cabbage',n:'蒜炒高麗菜',cat:'side',min:10,act:10,tools:['wok'],tags:['slim','gout','bp'],
+ note:'高麗菜含維生素 U，傳統上用來顧胃；大火快炒能保住脆度和維生素 C。',
+ ing:[['cabbage',200],['garlic',6],['oil',6],['salt',1]],
+ steps:[{a:'wash',s:'高麗菜用手撕成片，洗淨瀝乾；蒜拍碎。'},{a:'fry',s:'熱鍋下油爆香蒜，轉大火下高麗菜快炒 1 分鐘。',t:60},{a:'fry',s:'沿鍋邊淋 1 大匙水，加鹽翻炒到菜梗微透就起鍋。',t:60}]},
+{id:'bokchoy',n:'蒜香鮮菇青江菜',cat:'side',min:10,act:10,tools:['wok'],tags:['slim','gut','bp','heart'],
+ note:'香菇加青江菜，纖維多、熱量低，是每一桌都該有的那盤青菜。',
+ ing:[['bokchoy',125],['shiitake',50],['garlic',5],['oil',5],['salt',0.8]],
+ steps:[{a:'wash',s:'青江菜對半切開洗淨，香菇切片，蒜切末。'},{a:'fry',s:'熱鍋下油，香菇片先煎到微焦出香味。',t:90},{a:'fry',s:'下蒜末和青江菜，大火快炒 1 分鐘，加鹽和 1 大匙水拌勻起鍋。',t:60}]},
+{id:'chawanmushi',n:'蝦仁香菇茶碗蒸',cat:'side',min:20,act:6,tools:['dianguo','microwave'],tags:['slim','gut','bp'],
+ note:'蒸蛋軟嫩好吞嚥，適合長輩、小孩，以及腸胃不舒服的時候。',
+ ing:[['egg',55],['shrimp',30],['shiitake',15],['scallion',3],['soy',3],['salt',0.3]],
+ steps:[{a:'mix',s:'蛋打散，加 1.5 倍的溫水、醬油和鹽拌勻，用濾網過篩倒進碗裡。'},{a:'chop',s:'香菇切片，和蝦仁一起放進蛋液，碗口蓋上盤子。'},{a:'steam',s:'電鍋外鍋 1 杯水，鍋蓋邊夾一根筷子留縫，蒸 12 分鐘。（微波爐：300W 約 5 分鐘）',t:720},{a:'serve',s:'撒上蔥花。'}]},
+{id:'clam_loofah',n:'蛤蜊絲瓜',cat:'side',min:15,act:10,tools:['wok','pot'],tags:['slim','moist','iron','bp'],
+ note:'絲瓜清熱潤燥，蛤蜊含鐵、鋅與維生素 B12。湯汁本身夠鮮，幾乎不用加鹽。',
+ ing:[['loofah',200],['clam',150],['ginger',5],['oil',4],['salt',0.3]],
+ steps:[{a:'wash',s:'蛤蜊沖洗乾淨（沒吐過沙的先泡鹽水 30 分鐘）；絲瓜削皮切塊，薑切絲。'},{a:'fry',s:'熱鍋下油炒香薑絲，下絲瓜拌炒 1 分鐘。',t:60},{a:'boil',s:'加 3 大匙水，鋪上蛤蜊，蓋鍋中火燜到蛤蜊全部打開。',t:240},{a:'serve',s:'嚐一下湯，不夠鹹再加一點鹽。'}]},
+{id:'chicken_soup',n:'香菇雞湯',cat:'soup',min:50,act:10,tools:['dianguo','pot'],tags:['warm','muscle'],
+ note:'雞湯溫潤補氣，香菇的多醣體有助免疫力。把湯面的浮油撈掉，脂肪能少一大半。',
+ ing:[['chicken_leg',200],['shiitake',50],['ginger',8],['rice_wine',10],['salt',1.2],['goji',2]],
+ steps:[{a:'boil',s:'雞腿塊冷水下鍋煮滾，汆燙 2 分鐘後撈起沖淨。（沒有爐子可用熱水壺的滾水沖燙兩次）',t:120},{a:'chop',s:'香菇去蒂對切，薑切片。'},{a:'steam',s:'雞肉、香菇、薑片、米酒放入內鍋，加水蓋過食材。電鍋外鍋 2 杯水。（湯鍋：小火燉 40 分鐘）',t:2400},{a:'rest',s:'開關跳起後加鹽和枸杞，蓋回去再燜 5 分鐘。',t:300}]},
+{id:'yam_rib',n:'山藥排骨湯',cat:'soup',min:60,act:12,tools:['dianguo','pot'],tags:['warm','gut','moist'],
+ note:'山藥健脾養胃，黏質多醣對腸胃溫和。排骨先汆燙去浮沫，湯更清也更少油。',
+ ing:[['pork_rib',165],['yam',100],['ginger',5],['red_date',6],['rice_wine',5],['salt',1.2],['goji',2]],
+ steps:[{a:'boil',s:'排骨冷水下鍋煮滾，汆燙 2 分鐘後沖淨。',t:120},{a:'chop',s:'山藥戴手套削皮切塊（黏液碰到皮膚會癢），薑切片。'},{a:'steam',s:'排骨、薑片、紅棗、米酒放入內鍋，加水蓋過。電鍋外鍋 2 杯水。（湯鍋：小火燉 35 分鐘）',t:2100},{a:'steam',s:'開關跳起後放入山藥，外鍋再加半杯水蒸 12 分鐘。',t:720},{a:'rest',s:'加鹽和枸杞，燜 5 分鐘。',t:300}]},
+{id:'sishen',n:'四神排骨湯',cat:'soup',min:75,act:8,tools:['dianguo','pot'],tags:['gut','bp'],
+ note:'四神（薏仁、蓮子、芡實、茯苓）是健脾祛濕的經典食補，食慾差、容易脹氣時適合。',
+ ing:[['pork_rib',110],['sishen',35],['rice_wine',8],['salt',1]],
+ steps:[{a:'soak',s:'四神湯料沖洗後泡水 15 分鐘。',t:900},{a:'boil',s:'排骨冷水下鍋煮滾，汆燙 2 分鐘後沖淨。',t:120},{a:'steam',s:'排骨和四神料放入內鍋，加水高過食材 3 公分。電鍋外鍋 2.5 杯水。（湯鍋：小火燉 60 分鐘）',t:3000},{a:'serve',s:'開關跳起後加鹽，起鍋前淋米酒提香。'}]},
+{id:'miso_soup',n:'鮮菇豆腐味噌湯',cat:'soup',min:15,act:8,tools:['pot','wok'],tags:['slim','heart','gut'],
+ note:'味噌是發酵食品，搭配菇類的纖維顧腸道。味噌最後才放、不要煮滾，香氣才留得住。',
+ ing:[['tofu_soft',75],['shimeji',40],['wakame',1.5],['miso',12],['scallion',4]],
+ steps:[{a:'chop',s:'豆腐切小丁，鴻喜菇切掉根部剝散，蔥切花。'},{a:'boil',s:'水（每人約 300ml）煮滾，放鴻喜菇煮 2 分鐘。',t:120},{a:'boil',s:'加豆腐和海帶芽，再煮 1 分鐘後轉最小火。',t:60},{a:'mix',s:'味噌放在湯勺裡用熱湯化開再拌進鍋裡，不要再煮滾；撒蔥花。'}]},
+{id:'rice',n:'白飯',cat:'staple',min:40,act:3,tools:['dianguo','pot'],tags:['gout'],
+ note:'一碗白飯約 280 大卡。想控糖或多吃纖維，可以換成地瓜糙米飯。',
+ ing:[['rice',80]],
+ steps:[{a:'wash',s:'米用水輕輕淘洗 2 次，把水倒掉。'},{a:'steam',s:'加水（米和水 1:1.1）。電鍋外鍋 1 杯水，按下開關。',t:1500},{a:'rest',s:'開關跳起後不要開蓋，燜 10 分鐘再翻鬆。',t:600}]},
+{id:'brown_rice',n:'地瓜糙米飯',cat:'staple',min:75,act:6,tools:['dianguo'],tags:['gut','heart','gout'],
+ note:'糙米保留麩皮，纖維是白米的好幾倍；加了地瓜口感更軟甜，血糖上升也比白飯慢。',
+ ing:[['brown_rice',55],['sweet_potato',70]],
+ steps:[{a:'soak',s:'糙米洗淨，泡水 30 分鐘。',t:1800},{a:'chop',s:'地瓜削皮切小丁。'},{a:'steam',s:'糙米和地瓜放入內鍋，水量是米的 1.3 倍。電鍋外鍋 1.5 杯水。',t:2100},{a:'rest',s:'開關跳起後燜 10 分鐘再翻鬆。',t:600}]},
+{id:'tremella',n:'銀耳蓮子紅棗湯',cat:'sweet',min:75,act:8,tools:['dianguo','pot'],tags:['moist','gut','gout'],
+ note:'白木耳的膠質與多醣滋潤，秋天乾咳、皮膚乾時來一碗。冰糖可以減半或不加。',
+ ing:[['white_fungus',5],['lotus',15],['red_date',9],['rock_sugar',8],['goji',2]],
+ steps:[{a:'soak',s:'白木耳泡水 20 分鐘到完全發開，剪掉黃色蒂頭、撕成小朵；蓮子沖洗。',t:1200},{a:'steam',s:'白木耳、蓮子、紅棗放入內鍋，加水（每人約 350ml）。電鍋外鍋 2 杯水。（湯鍋：小火煮 40 分鐘）',t:2400},{a:'rest',s:'開關跳起後加冰糖和枸杞，攪勻再燜 10 分鐘。',t:600}]}
+];
+
+function nutri(r){
+  const n = {k:0,pr:0,f:0,c:0,fb:0,na:0};
+  r.ing.forEach(([id,g]) => { const i = ING[id]; for (const key in n) n[key] += i[key]*g/100; });
+  return n;
+}
+/*DATA-END*/
+
+const STORES = [
+  {id:'px',n:'全聯',sub:'估算價',f:{m:1,e:1,v:.95,d:1,s:1},q:'全聯'},
+  {id:'wjf',n:'萬家福',sub:'原家樂福 · 實查價',f:{},url:q=>'https://online.uni-prosperity.com.tw/zh/search/?q='+encodeURIComponent(q)},
+  {id:'rt',n:'大全聯',sub:'原大潤發 · 估算價',f:{m:.97,e:.97,v:.97,d:.97,s:.97},q:'大全聯'},
+  {id:'costco',n:'好市多',sub:'大包裝 · 估算價',f:{m:.85,e:.85,v:.85,d:.85,s:.85},mul:2.5,url:q=>'https://www.costco.com.tw/search?text='+encodeURIComponent(q)},
+  {id:'simple',n:'美廉社',sub:'估算價',f:{m:1.03,e:.98,v:1.05,d:.98,s:.98},q:'美廉社'},
+  {id:'market',n:'傳統市場',sub:'估算價',f:{m:.92,e:.95,v:.75,d:1,s:1.05}}
+];
+const TOOLS = [{id:'wok',n:'炒鍋／平底鍋'},{id:'pot',n:'湯鍋'},{id:'dianguo',n:'電鍋'},{id:'airfryer',n:'氣炸鍋'},{id:'oven',n:'烤箱'},{id:'microwave',n:'微波爐'}];
+const TIMES = [15,30,45,60,90];
+const CATS = {main:'主菜',bowl:'飯類',side:'配菜',soup:'湯',staple:'主食',sweet:'甜湯'};
+const GROUPS = {m:'肉品海鮮',e:'蛋豆',v:'蔬果',d:'乾貨雜糧',s:'調味料'};
+const GOALS = [
+  {id:'sugar',n:'控糖',d:'穩定血糖',tip:'主食換成全穀，先吃菜和蛋白質再吃飯；一餐的碳水抓在 45–60g。'},
+  {id:'bp',n:'控血壓',d:'低鈉',tip:'一道菜的鈉控制在 600mg 內，多用蔥薑蒜和檸檬提味，湯少喝幾口。'},
+  {id:'heart',n:'護心降脂',d:'好油多纖',tip:'每週吃兩次魚，多豆製品與蔬菜，少油炸和肥肉。'},
+  {id:'muscle',n:'增肌',d:'高蛋白',tip:'每餐吃到 25–35g 蛋白質，運動後一小時內吃效果最好。'},
+  {id:'slim',n:'減脂',d:'低熱量',tip:'單道 350 大卡以內、蛋白質要夠才有飽足感；先喝清湯再吃菜。'},
+  {id:'iron',n:'補鐵',d:'補血',tip:'紅肉、蛤蜊、深綠蔬菜搭配維生素 C 吸收更好；餐後一小時再喝茶或咖啡。'},
+  {id:'gut',n:'顧腸胃',d:'高纖好消化',tip:'一天吃到 25g 膳食纖維：菇類、全穀、地瓜；腸胃弱時選蒸和燉。'},
+  {id:'gout',n:'低普林',d:'尿酸高',tip:'避開內臟、濃肉湯、帶殼海鮮；蛋和蔬菜可以放心吃，記得多喝水。'},
+  {id:'warm',n:'溫補',d:'養氣暖身',tip:'薑、麻油、雞肉、山藥偏溫，手腳冰冷或天冷時適合；口乾、嘴破時先暫停。'},
+  {id:'moist',n:'潤燥',d:'秋季養肺',tip:'白木耳、蓮子、山藥、絲瓜滋潤，乾咳、皮膚乾時適合；少吃炸物和辣。'}
+];
+const DV = {k:2000,pr:60,f:60,c:300,fb:25,na:2000};
+const ACT = {chop:'切',fry:'炒／煎',boil:'煮',steam:'蒸／燉',airfry:'氣炸／烤',microwave:'微波',mix:'拌',wash:'洗',soak:'泡',marinate:'醃',rest:'燜／靜置',serve:'盛盤'};
+
+/* 節氣（每年約略日期，前後一天內） */
+const TERMS = [[1,5,'小寒',3],[1,20,'大寒',3],[2,4,'立春',0],[2,19,'雨水',0],[3,5,'驚蟄',0],[3,20,'春分',0],[4,5,'清明',0],[4,20,'穀雨',0],[5,5,'立夏',1],[5,21,'小滿',1],[6,6,'芒種',1],[6,21,'夏至',1],[7,7,'小暑',1],[7,23,'大暑',1],[8,7,'立秋',2],[8,23,'處暑',2],[9,7,'白露',2],[9,23,'秋分',2],[10,8,'寒露',2],[10,23,'霜降',2],[11,7,'立冬',3],[11,22,'小雪',3],[12,7,'大雪',3],[12,22,'冬至',3]];
+const SEASONS = [{n:'春',tag:'gut',tip:'春天宜清淡，多吃當令青菜'},{n:'夏',tag:'slim',tip:'夏天宜清爽少油，補水分'},{n:'秋',tag:'moist',tip:'秋天乾燥，宜潤燥養肺'},{n:'冬',tag:'warm',tip:'冬天宜溫補，暖身養氣'}];
+const NOW = new Date();
+const TERM = (() => { const md = (NOW.getMonth()+1)*100 + NOW.getDate(); let t = TERMS[TERMS.length-1]; TERMS.forEach(x => { if (x[0]*100+x[1] <= md) t = x; }); return t; })();
+const SEASON = SEASONS[TERM[3]];
+
+/* 步驟動畫 */
+const FLAMES = '<g class="flames"><path d="M92 142q-9-14 3-25q2 9 8 11q5-5 3 14z" class="f-flame"/><path d="M114 142q-9-14 3-25q2 9 8 11q5-5 3 14z" class="f-flame"/><path d="M136 142q-9-14 3-25q2 9 8 11q5-5 3 14z" class="f-flame"/></g>';
+const STEAM = '<g class="steam"><path d="M96 52q-8-10 0-20t0-20" class="st"/><path d="M120 52q-8-10 0-20t0-20" class="st"/><path d="M144 52q-8-10 0-20t0-20" class="st"/></g>';
+const SC = {
+  chop:'<rect x="24" y="110" width="192" height="16" rx="8" class="f-wood"/><rect x="50" y="88" width="84" height="22" rx="11" class="f-car"/><g class="sl"><rect x="142" y="90" width="7" height="20" rx="3" class="f-car"/><rect x="155" y="90" width="7" height="20" rx="3" class="f-car"/><rect x="168" y="90" width="7" height="20" rx="3" class="f-car"/></g><g class="knife"><path d="M92 24h72v38q-46 8-72-10z" class="f-steel"/><rect x="164" y="28" width="46" height="13" rx="5" class="f-ink"/></g>',
+  fry:FLAMES+'<path d="M48 96h128q-4 26-30 26h-68q-26 0-30-26z" class="f-ink"/><rect x="172" y="97" width="58" height="9" rx="4.5" class="f-ink"/><g class="bits"><circle cx="84" cy="86" r="7" class="f-veg"/><circle cx="108" cy="84" r="6" class="f-car"/><circle cx="132" cy="86" r="7" class="f-tag"/><circle cx="152" cy="87" r="5" class="f-veg"/></g>',
+  boil:FLAMES+STEAM+'<rect x="62" y="66" width="116" height="58" rx="10" class="f-steel"/><rect x="46" y="74" width="18" height="9" rx="4.5" class="f-ink"/><rect x="176" y="74" width="18" height="9" rx="4.5" class="f-ink"/><rect x="62" y="66" width="116" height="16" rx="8" class="f-water"/><g class="bub"><circle cx="90" cy="72" r="5" class="f-surf"/><circle cx="120" cy="72" r="4" class="f-surf"/><circle cx="150" cy="72" r="6" class="f-surf"/></g>',
+  steam:STEAM+'<path d="M68 70q52-26 104 0v6h-104z" class="f-steel"/><circle cx="120" cy="54" r="6" class="f-ink"/><rect x="58" y="74" width="124" height="58" rx="16" class="f-acc"/><rect x="44" y="86" width="16" height="10" rx="5" class="f-ink"/><rect x="180" y="86" width="16" height="10" rx="5" class="f-ink"/><rect x="98" y="104" width="44" height="18" rx="4" class="f-surf"/><circle cx="109" cy="113" r="4" class="lamp"/><rect x="120" y="110" width="16" height="6" rx="3" class="f-ink"/><rect x="76" y="132" width="14" height="6" class="f-ink"/><rect x="150" y="132" width="14" height="6" class="f-ink"/>',
+  airfry:'<rect x="70" y="20" width="100" height="116" rx="24" class="f-ink"/><circle cx="120" cy="48" r="16" class="f-surf"/><g class="fan"><path d="M120 36v24M108 48h24" class="st-ink"/></g><rect x="84" y="76" width="72" height="48" rx="8" class="f-steel"/><rect x="84" y="76" width="72" height="48" rx="8" class="glow"/><rect x="102" y="96" width="36" height="10" rx="5" class="f-ink"/>',
+  microwave:'<rect x="36" y="38" width="168" height="96" rx="10" class="f-steel"/><rect x="48" y="50" width="108" height="72" rx="6" class="f-ink"/><rect x="48" y="50" width="108" height="72" rx="6" class="glow" style="animation-duration:2s"/><ellipse cx="102" cy="108" rx="34" ry="6" class="f-surf"/><path d="M82 106q20-28 40 0z" class="f-tag dish"/><circle cx="180" cy="66" r="7" class="f-ink"/><rect x="170" y="86" width="20" height="6" rx="3" class="f-ink"/><rect x="170" y="100" width="20" height="6" rx="3" class="f-ink"/>',
+  mix:'<path d="M54 72h132q-4 58-66 58t-66-58z" class="f-steel"/><ellipse cx="120" cy="74" rx="62" ry="10" class="f-tag"/><g class="stir"><rect x="113" y="12" width="5" height="72" rx="2.5" class="f-wood"/><rect x="123" y="12" width="5" height="72" rx="2.5" class="f-wood"/></g>',
+  wash:'<path d="M158 18h-44q-16 0-16 16v10h13v-8q0-5 5-5h42z" class="f-steel"/><g class="drops"><circle cx="104" cy="54" r="4.5" class="f-water"/><circle cx="104" cy="54" r="4.5" class="f-water"/><circle cx="104" cy="54" r="4.5" class="f-water"/></g><circle cx="94" cy="102" r="13" class="f-veg"/><circle cx="121" cy="97" r="15" class="f-veg"/><circle cx="147" cy="103" r="12" class="f-veg"/><path d="M58 104h124q-6 32-62 32t-62-32z" class="f-steel"/>',
+  soak:'<path d="M54 72h132q-4 58-66 58t-66-58z" class="f-steel"/><ellipse cx="120" cy="74" rx="62" ry="10" class="f-water"/><g class="bub"><circle cx="96" cy="70" r="4" class="f-surf"/><circle cx="124" cy="70" r="5" class="f-surf"/><circle cx="148" cy="70" r="3.5" class="f-surf"/></g><circle cx="104" cy="76" r="7" class="f-wood"/><circle cx="136" cy="77" r="6" class="f-wood"/>',
+  marinate:'<rect x="128" y="8" width="22" height="42" rx="6" class="f-ink" transform="rotate(38 139 29)"/><g class="drops"><circle cx="118" cy="38" r="4" class="f-wood"/><circle cx="118" cy="38" r="4" class="f-wood"/><circle cx="118" cy="38" r="4" class="f-wood"/></g><path d="M54 82h132q-4 50-66 50t-66-50z" class="f-steel"/><ellipse cx="120" cy="84" rx="62" ry="10" class="f-wood"/><ellipse cx="104" cy="83" rx="16" ry="5" class="f-car"/><ellipse cx="140" cy="85" rx="14" ry="4" class="f-car"/>',
+  rest:'<circle cx="120" cy="76" r="54" class="f-steel"/><circle cx="120" cy="76" r="44" class="f-surf"/><path d="M120 76h20" class="st-ink"/><path d="M120 76V42" class="st-fl hand"/><circle cx="120" cy="76" r="5" class="f-ink"/>',
+  serve:STEAM+'<ellipse cx="120" cy="120" rx="86" ry="14" class="f-steel"/><path d="M68 116q52-70 104 0z" class="f-tag"/><circle cx="100" cy="100" r="6" class="f-veg"/><circle cx="132" cy="92" r="7" class="f-car"/><path d="M198 36l3 9 9 3-9 3-3 9-3-9-9-3 9-3z" class="f-flame spark"/><path d="M40 52l2 6 6 2-6 2-2 6-2-6-6-2 6-2z" class="f-flame spark" style="animation-delay:.5s"/>'
+};
+const scene = a => '<svg viewBox="0 0 240 150" role="img" aria-label="'+(ACT[a]||'')+'">'+(SC[a]||SC.mix)+'</svg>';
+
+/* 狀態 */
+const KEY = 'cook-tonight-v1';
+const S = {store:'px',budget:500,people:2,time:45,tools:['wok','pot','dianguo'],goals:[],picked:null,manual:false,skip:{},need:{},price:{},view:'setup',ai:[],cook:null,step:0};
+try { Object.assign(S, JSON.parse(localStorage.getItem(KEY) || '{}')); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const all = () => R.concat(S.ai || []);
+const byId = id => all().find(r => r.id === id);
+const picked = () => (S.picked || []).map(byId).filter(Boolean);
+const store = () => STORES.find(s => s.id === S.store) || STORES[0];
+const toolName = id => (TOOLS.find(t => t.id === id) || {}).n || id;
+
+function price(ing){ const o = S.price[S.store+':'+ing.id]; if (o > 0) return o; const st = store(); return Math.max(1, Math.round(ing.p * (st.f[ing.cat] || 1) * (st.mul || 1))); }
+const packG = ing => ing.g * (store().mul || 1);
+const srcOf = ing => S.price[S.store+':'+ing.id] > 0 ? 'own' : (S.store === 'wjf' && ing.r ? 'real' : 'est');
+const costPer = r => r.ing.reduce((a,[id,g]) => a + g * price(ING[id]) / packG(ING[id]), 0);
+function shop(list){
+  const agg = {};
+  list.forEach(r => r.ing.forEach(([id,g]) => { agg[id] = (agg[id] || 0) + g * S.people; }));
+  const rows = Object.keys(agg).map(id => { const ing = ING[id], packs = Math.ceil(agg[id] / packG(ing) - 1e-9), p = price(ing);
+    return {ing, need:agg[id], packs, p, sub:packs*p, on: ing.st ? !!S.need[id] : !S.skip[id]}; });
+  return {rows, total: rows.reduce((a,x) => a + (x.on ? x.sub : 0), 0)};
+}
+const menuTime = list => list.length ? Math.max(Math.max(...list.map(r => r.min)), list.reduce((a,r) => a + r.act, 0)) : 0;
+const fits = r => r.min <= S.time && r.tools.some(t => S.tools.includes(t));
+function why(r){ if (!r.tools.some(t => S.tools.includes(t))) return '需要' + r.tools.map(toolName).join('或'); if (r.min > S.time) return '要 ' + r.min + ' 分鐘'; return ''; }
+function score(r){ let s = 0; S.goals.forEach(g => { if (r.tags.includes(g)) s += 10; }); if (r.tags.includes(SEASON.tag)) s += 2; return s - costPer(r) / 40; }
+function autoPick(){
+  const el = all().filter(fits).sort((a,b) => score(b) - score(a)), out = [];
+  const ok = r => { const t = out.concat(r); return menuTime(t) <= S.time && shop(t).total <= S.budget; };
+  const add = cats => { const r = el.find(x => cats.includes(x.cat) && !out.includes(x) && ok(x)); if (r) out.push(r); return r; };
+  let main = add(['main','bowl']);
+  if (!main) { main = el.filter(r => r.cat === 'main' || r.cat === 'bowl').sort((a,b) => costPer(a) - costPer(b))[0]; if (main) out.push(main); }
+  add(['side']);
+  if (S.people >= 2) add(['soup']);
+  if (main && main.cat !== 'bowl') add(['staple']);
+  if (S.people >= 4) add(['side','main']);
+  S.picked = out.map(r => r.id);
+}
+
+/* 顯示格式 */
+const frac = n => { const w = Math.floor(n), f = Math.round((n - w) * 4); return (w || !f ? w : '') + ['', '¼', '½', '¾'][f]; };
+const gr = g => g >= 1000 ? (g/1000).toFixed(1) + 'kg' : g < 10 ? Math.max(1, Math.round(g)) + 'g' : g < 100 ? Math.round(g/5)*5 + 'g' : Math.round(g/10)*10 + 'g';
+function qty(ing, g){
+  if (ing.sp) { const t = g / ing.sp; if (t < .2) return '少許'; if (t >= 2.75) return frac(Math.round(t/3*2)/2) + ' 大匙'; return frac(Math.max(.25, Math.round(t*4)/4)) + ' 小匙'; }
+  if (ing.u) { return frac(Math.max(.5, Math.round(g / ing.u[1] * 2) / 2)) + ' ' + ing.u[0]; }
+  return g < 1 ? '少許' : gr(g);
+}
+const tagChips = r => (r.ai ? '<span class="chip ai">Claude 提案</span>' : '') + r.tags.map(t => { const g = GOALS.find(x => x.id === t); return g ? '<span class="chip'+(S.goals.includes(t) ? ' hit' : '')+'">'+g.n+'</span>' : ''; }).join('');
+const money = n => '$' + Math.round(n).toLocaleString('en-US');
+
+/* 畫面 */
+function render(){
+  if (!S.picked) autoPick();
+  $('#term').innerHTML = '節氣 <b>'+TERM[2]+'</b> · '+SEASON.tip;
+  const names = [['setup','設定'],['menu','菜單'],['shop','採買'],['cook','下廚']];
+  $('#nav').innerHTML = names.map(([v,n],i) => '<button data-act="view" data-v="'+v+'"'+(S.view === v ? ' aria-current="step"' : '')+'><i>'+(i+1)+'</i>'+n+'</button>').join('');
+  $('#view').innerHTML = ({setup:vSetup, menu:vMenu, shop:vShop, cook:vCook}[S.view] || vSetup)();
+  renderBar(); save();
+}
+function renderBar(){
+  const list = picked(), sh = shop(list), over = sh.total > S.budget, bar = $('#bar');
+  const sum = '已選 <b>'+list.length+'</b> 道 · 約 <b>'+menuTime(list)+'</b> 分鐘 · 採買 <b class="'+(over ? 'over' : '')+'">'+money(sh.total)+'</b> / '+money(S.budget);
+  const m = {setup:['符合條件的有 <b>'+all().filter(fits).length+'</b> 道','看推薦菜單','menu'], menu:[sum,'列採買清單','shop'], shop:[sum,'開始下廚','cook']}[S.view];
+  bar.hidden = !m;
+  if (m) bar.innerHTML = '<div><p>'+m[0]+'</p><button class="btn" data-act="view" data-v="'+m[2]+'">'+m[1]+'</button></div>';
+}
+
+function vSetup(){
+  const st = store();
+  return '<section class="panel"><header><h2>去哪裡買</h2><span class="small muted">價格基準：萬家福線上購物 '+PRICE_DATE+' 實查</span></header>'+
+    '<div class="stores">'+STORES.map(s => '<label class="opt"><input type="radio" name="store" id="st-'+s.id+'" value="'+s.id+'"'+(S.store === s.id ? ' checked' : '')+'><b>'+s.n+'</b><small>'+s.sub+'</small></label>').join('')+'</div>'+
+    '<p class="small muted">'+(st.id === 'wjf' ? '大部分品項是今天從萬家福（原家樂福，2026 年 7 月改名）線上購物查到的售價。' : st.n+'沒有可查的公開線上價格，這裡用萬家福實查價依一般價差換算。到現場看到標價，可以在採買清單直接改。')+(st.mul ? ' 好市多是大包裝，一包約一般賣場的 2.5 倍，人多或會分裝冷凍比較划算。' : '')+'</p></section>'+
+  '<div class="trio">'+
+    '<section class="panel"><h2>這一餐的預算</h2><div class="budget"><span class="big" id="budgetOut">'+money(S.budget)+'</span><input type="range" id="budget" min="150" max="2000" step="50" value="'+S.budget+'" aria-label="預算"></div><p class="small muted" id="perHead">平均每人 '+money(S.budget / S.people)+'</p></section>'+
+    '<section class="panel"><h2>幾個人吃</h2><div class="stepper"><button data-act="people" data-d="-1" aria-label="減少一人">−</button><span class="big">'+S.people+'</span><button data-act="people" data-d="1" aria-label="增加一人">＋</button><span class="muted">人</span></div><p class="small muted">食材份量和採買數量會跟著算</p></section>'+
+    '<section class="panel"><h2>多久要上桌</h2><div class="opts">'+TIMES.map(t => '<label class="opt"><input type="radio" name="time" id="tm-'+t+'" value="'+t+'"'+(S.time === t ? ' checked' : '')+'><b>'+t+' 分</b></label>').join('')+'</div></section>'+
+  '</div>'+
+  '<section class="panel"><header><h2>家裡有的廚具</h2><span class="small muted">只推薦做得出來的菜</span></header><div class="opts">'+TOOLS.map(t => '<label class="opt"><input type="checkbox" name="tool" id="tl-'+t.id+'" value="'+t.id+'"'+(S.tools.includes(t.id) ? ' checked' : '')+'><b>'+t.n+'</b></label>').join('')+'</div></section>'+
+  '<section class="panel"><header><h2>膳食療養目標</h2><span class="small muted">可複選，不選也可以</span></header><div class="opts">'+GOALS.map(g => '<label class="opt"><input type="checkbox" name="goal" id="gl-'+g.id+'" value="'+g.id+'"'+(S.goals.includes(g.id) ? ' checked' : '')+'><b>'+g.n+'</b><small>'+g.d+'</small></label>').join('')+'</div>'+
+    (S.goals.length ? '<div class="note"><ul class="tips">'+S.goals.map(id => { const g = GOALS.find(x => x.id === id); return '<li><b>'+g.n+'</b>　'+g.tip+'</li>'; }).join('')+'</ul></div>' : '<div class="note">現在是<b>'+TERM[2]+'</b>，'+SEASON.tip+'。沒選目標時會優先推薦當季適合的菜。</div>')+
+    '<p class="small muted">這些是一般飲食原則，不能取代醫療。有慢性病、腎臟病、懷孕或正在服藥，請照醫師或營養師的指示吃。</p></section>';
+}
+
+function vMenu(){
+  const list = picked(), sh = shop(list), over = sh.total > S.budget, t = menuTime(list), late = t > S.time;
+  const n = list.reduce((a,r) => { const x = nutri(r); for (const k in a) a[k] += x[k]; return a; }, {k:0,pr:0,f:0,c:0,fb:0,na:0});
+  const rs = all().slice().sort((a,b) => (fits(b) - fits(a)) || (score(b) - score(a)));
+  return '<section class="panel"><header><h2>這一桌</h2><button class="btn ghost sm" data-act="auto">'+(S.manual ? '重新幫我配一桌' : '換一組試試')+'</button></header>'+
+    (list.length ? '<div class="chips">'+list.map(r => '<span class="chip hit">'+CATS[r.cat]+'・'+esc(r.n)+'</span>').join('')+'</div>' : '<p class="muted">還沒選菜。從下面挑幾道，或按「重新幫我配一桌」。</p>')+
+    '<div class="statrow">'+
+      '<div class="stat"><span class="lbl">採買金額 / 預算 '+money(S.budget)+'</span><span class="val">'+money(sh.total)+'</span><div class="meter'+(over ? ' over' : '')+'"><i style="width:'+Math.min(100, sh.total / S.budget * 100)+'%"></i></div></div>'+
+      '<div class="stat"><span class="lbl">預估上桌時間 / 目標 '+S.time+' 分</span><span class="val">'+t+' <small>分鐘</small></span><div class="meter'+(late ? ' over' : '')+'"><i style="width:'+Math.min(100, t / S.time * 100)+'%"></i></div></div>'+
+      '<div class="stat"><span class="lbl">每人熱量</span><span class="val">'+Math.round(n.k)+' <small>大卡</small></span></div>'+
+      '<div class="stat"><span class="lbl">每人蛋白質 / 鈉</span><span class="val">'+Math.round(n.pr)+'<small>g</small> · '+Math.round(n.na)+'<small>mg</small></span></div>'+
+    '</div>'+
+    (over ? '<div class="warnbox">超出預算 '+money(sh.total - S.budget)+'。拿掉一道，或到採買清單把家裡已經有的取消勾選。</div>' : '')+
+    (late ? '<div class="warnbox">這樣配大約要 '+t+' 分鐘，比你設定的多 '+(t - S.time)+' 分鐘。</div>' : '')+
+    (n.na > 1000 ? '<p class="small muted">這一桌每人約 '+Math.round(n.na)+'mg 鈉，一餐建議 800mg 上下；湯少喝幾口、醬汁不要全淋。</p>' : '')+
+  '</section>'+
+  '<div class="cards">'+rs.map(card).join('')+'</div>'+
+  (AI ? '<section class="panel"><header><h2>想吃點別的？</h2></header><p class="muted small">請 Claude 依你的條件再設計 3 道。會用到你自己的 Claude 用量；營養和價格一樣由這裡的食材表計算。</p><div class="opts">'+(aiCtl ? '<button class="btn ghost" data-act="aistop">停止</button>' : '<button class="btn ghost" data-act="ai">請 Claude 再想 3 道</button>')+((S.ai || []).length && !aiCtl ? '<button class="linkbtn" data-act="aiclear">清掉 Claude 的提案</button>' : '')+'</div>'+(aiMsg ? '<p class="small" id="aimsg">'+esc(aiMsg)+'</p>' : '')+'</section>' : '');
+}
+function card(r){
+  const on = (S.picked || []).includes(r.id), ok = fits(r), n = nutri(r);
+  return '<article class="card'+(on ? ' picked' : '')+(ok ? '' : ' dim')+'"><button class="card-main" data-act="open" data-id="'+r.id+'">'+
+    '<h3><span class="chip">'+CATS[r.cat]+'</span>'+esc(r.n)+'</h3>'+
+    '<span class="meta">'+r.min+' 分鐘 · '+r.tools.map(toolName).join('或')+(ok ? '' : ' · <b>'+why(r)+'</b>')+'</span>'+
+    '<span class="meta num" style="font-size:16px">'+Math.round(n.k)+' 大卡 · 蛋白質 '+Math.round(n.pr)+'g · 鈉 '+Math.round(n.na)+'mg</span>'+
+    '<span class="chips">'+tagChips(r)+'</span></button>'+
+    '<div class="card-side"><span class="tag">'+money(costPer(r))+'<small>/人</small></span><button class="btn sm'+(on ? ' on' : '')+'" data-act="pick" data-id="'+r.id+'">'+(on ? '已加入 ✓' : '加入')+'</button></div></article>';
+}
+
+function detail(r){
+  const n = nutri(r), on = (S.picked || []).includes(r.id);
+  const e = {pr:n.pr*4, f:n.f*9, c:n.c*4}, es = e.pr + e.f + e.c || 1;
+  const row = (l,v,u,k) => '<tr><td>'+l+'</td><td>'+(v < 10 ? v.toFixed(1) : Math.round(v))+' '+u+'</td><td><div class="meter'+(k === 'na' && v > 800 ? ' over' : '')+'"><i style="width:'+Math.min(100, v / DV[k] * 100)+'%"></i></div></td><td>'+Math.round(v / DV[k] * 100)+'%</td></tr>';
+  return '<div class="dlg"><div class="dlg-head"><div><div class="chips" style="margin-bottom:4px"><span class="chip">'+CATS[r.cat]+'</span>'+tagChips(r)+'</div><h2 style="font-size:22px">'+esc(r.n)+'</h2><p class="muted small">'+r.min+' 分鐘（動手約 '+r.act+' 分）· '+r.tools.map(toolName).join('或')+'</p></div><button class="x" data-act="close" aria-label="關閉">×</button></div>'+
+    (r.note ? '<div class="note"><b>食療說明</b>　'+esc(r.note)+'</div>' : '')+
+    '<div><div class="kcal"><span class="big">'+Math.round(n.k)+'</span><span class="muted">大卡 / 每人份</span><span class="tag" style="margin-left:auto">'+money(costPer(r))+'<small>/人</small></span></div>'+
+    '<div class="macro" style="margin:8px 0 6px"><i style="width:'+e.pr/es*100+'%;background:var(--c-pro)"></i><i style="width:'+e.f/es*100+'%;background:var(--c-fat)"></i><i style="width:'+e.c/es*100+'%;background:var(--c-carb)"></i></div>'+
+    '<div class="legend"><span style="--k:var(--c-pro)">蛋白質 '+Math.round(e.pr/es*100)+'%</span><span style="--k:var(--c-fat)">脂肪 '+Math.round(e.f/es*100)+'%</span><span style="--k:var(--c-carb)">碳水 '+Math.round(e.c/es*100)+'%</span><span style="--k:transparent">熱量來源佔比</span></div></div>'+
+    '<table class="nt"><tbody>'+row('蛋白質',n.pr,'g','pr')+row('脂肪',n.f,'g','f')+row('碳水化合物',n.c,'g','c')+row('膳食纖維',n.fb,'g','fb')+row('鈉',n.na,'mg','na')+'</tbody></table>'+
+    '<p class="small muted">右欄是佔每日參考值的比例（2000 大卡、蛋白質 60g、脂肪 60g、碳水 300g、纖維 25g、鈉 2000mg）。數值由食材重量估算，帶骨、帶殼的已扣除不可食部分。</p>'+
+    '<div><h3>食材（'+S.people+' 人份）</h3><table class="ing"><tbody>'+r.ing.map(([id,g]) => '<tr><td>'+ING[id].n+(ING[id].st ? ' <span class="muted small">常備</span>' : '')+'</td><td>'+qty(ING[id], g * S.people)+'</td></tr>').join('')+'</tbody></table></div>'+
+    '<div><h3>做法</h3><ol class="plain">'+r.steps.map(s => '<li>'+esc(s.s)+'</li>').join('')+'</ol></div>'+
+    '<div class="dlg-foot"><button class="btn ghost" data-act="pick" data-id="'+r.id+'">'+(on ? '從菜單移除' : '加入菜單')+'</button><button class="btn" data-act="cookit" data-id="'+r.id+'">跟著動畫做</button></div></div>';
+}
+
+function vShop(){
+  const list = picked(), sh = shop(list), st = store(), over = sh.total > S.budget;
+  if (!list.length) return '<section class="panel"><h2>採買清單</h2><p class="muted">菜單還是空的，先到「菜單」挑幾道菜。</p></section>';
+  const link = ing => { const u = st.url ? st.url(ing.n.replace(/（.*）/, '')) : st.q ? 'https://www.google.com/search?q=' + encodeURIComponent(st.q + ' ' + ing.n + ' 價格') : ''; return u ? ' · <a href="'+u+'" target="_blank" rel="noopener">查現價</a>' : ''; };
+  const srcLbl = {real:'實查', est:'估算', own:'自訂'};
+  const row = x => { const s = srcOf(x.ing); return '<div class="row'+(x.on ? '' : ' off')+'"><input type="checkbox" id="ck-'+x.ing.id+'" data-ing="'+x.ing.id+'"'+(x.on ? ' checked' : '')+' aria-label="要買 '+x.ing.n+'">'+
+    '<div class="nm"><label for="ck-'+x.ing.id+'"><b>'+x.ing.n+'</b></label> <span class="src '+s+'">'+srcLbl[s]+'</span><small>需要 '+qty(x.ing, x.need)+' · '+(st.mul ? '大包裝' : x.ing.pk)+' × '+x.packs+link(x.ing)+'</small></div>'+
+    '<span class="pin">$<input type="number" inputmode="numeric" min="1" id="pr-'+x.ing.id+'" data-price="'+x.ing.id+'" value="'+x.p+'" aria-label="'+x.ing.n+' 單價"></span><span class="sub">'+(x.on ? money(x.sub) : '—')+'</span></div>'; };
+  const main = sh.rows.filter(x => !x.ing.st), stp = sh.rows.filter(x => x.ing.st);
+  const groups = Object.keys(GROUPS).map(c => { const rs = main.filter(x => x.ing.cat === c); return rs.length ? '<div class="grp">'+GROUPS[c]+'</div>'+rs.map(row).join('') : ''; }).join('');
+  return '<section class="receipt"><h2>採買清單</h2><p class="head">'+st.n+' · '+S.people+' 人份 · '+list.map(r => esc(r.n)).join('、')+'</p>'+
+    groups+
+    '<div class="total"><span>合計（已勾選）</span><span class="num">'+money(sh.total)+'</span></div>'+
+    '<p class="small '+(over ? '' : 'muted')+'"'+(over ? ' style="color:var(--warn)"' : '')+'>'+(over ? '超出預算 '+money(sh.total - S.budget)+'。家裡已經有的可以取消勾選。' : '預算 '+money(S.budget)+'，還剩 '+money(S.budget - sh.total)+'。')+' 整包買回來用不完的，下一餐可以接著用。</p>'+
+    (stp.length ? '<details'+(stp.some(x => x.on) ? ' open' : '')+'><summary>家中常備（'+stp.length+' 項）— 缺的再勾</summary><div style="display:flex;flex-direction:column;gap:10px;padding-top:10px">'+stp.map(row).join('')+'</div></details>' : '')+
+  '</section>'+
+  '<section class="panel"><header><h2>價格怎麼來的</h2><button class="btn ghost sm" data-act="copy">複製清單</button></header>'+
+    '<p class="small muted"><span class="src real">實查</span> '+PRICE_DATE+' 在萬家福線上購物查到的售價。<span class="src est">估算</span> 依通路一般價差換算，或該品項線上沒有賣。<span class="src own">自訂</span> 你改過的價格。黃色價格可以直接點進去改，合計會跟著更新；改過的價格只存在這台裝置。</p>'+
+    '<textarea class="copy" id="copyBox" hidden readonly aria-label="清單文字"></textarea>'+
+    (Object.keys(S.price).length ? '<button class="linkbtn" data-act="resetprice" style="align-self:flex-start">還原所有自訂價格</button>' : '')+'</section>';
+}
+
+let timer = {left:0, int:null, key:'', done:false}, actx = null;
+const mmss = s => String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+function vCook(){
+  const list = picked();
+  let r = byId(S.cook) || list[0];
+  if (!r) return '<section class="panel"><h2>下廚</h2><p class="muted">菜單還是空的，先到「菜單」挑幾道菜。</p></section>';
+  S.cook = r.id; S.step = Math.max(0, Math.min(S.step, r.steps.length - 1));
+  const s = r.steps[S.step], key = r.id + ':' + S.step;
+  if (timer.key !== key) { clearInterval(timer.int); timer = {left:s.t || 0, int:null, key, done:false}; }
+  let a = s.a;
+  if (a === 'steam' && !S.tools.includes('dianguo')) a = S.tools.includes('microwave') && r.tools.includes('microwave') ? 'microwave' : 'boil';
+  const tabs = list.includes(r) ? list : list.concat(r);
+  const order = list.slice().sort((x,y) => y.min - x.min);
+  return (list.length > 1 ? '<section class="panel"><h2>先做哪一道</h2><p class="small muted">最花時間的先下鍋，等它的時候做其他菜：</p><p>'+order.map(x => esc(x.n)+'（'+x.min+' 分）').join(' → ')+'</p></section>' : '')+
+    '<div class="tabs">'+tabs.map(x => '<button data-act="cooktab" data-id="'+x.id+'" aria-pressed="'+(x === r)+'">'+esc(x.n)+'</button>').join('')+'</div>'+
+    '<section class="panel"><div class="player"><div class="anim">'+scene(a)+'</div><div style="display:flex;flex-direction:column;gap:12px;min-width:0">'+
+      '<p class="stepno">步驟 '+(S.step+1)+' / '+r.steps.length+' · '+ACT[a]+'</p><p class="steptext">'+esc(s.s)+'</p>'+
+      (s.t ? '<div class="timer'+(timer.done ? ' done' : '')+'" id="timer"><span class="num" id="tleft">'+mmss(timer.left)+'</span><button class="btn ghost sm" data-act="timer" id="tbtn">'+(timer.int ? '暫停' : timer.done ? '重新計時' : '開始計時')+'</button></div>' : '')+
+      '<div class="stepnav"><button class="btn ghost" data-act="step" data-d="-1"'+(S.step ? '' : ' disabled')+'>上一步</button><button class="btn" data-act="step" data-d="1"'+(S.step < r.steps.length - 1 ? '' : ' disabled')+'>下一步</button></div>'+
+    '</div></div></section>'+
+    '<section class="panel"><header><h2>'+esc(r.n)+'</h2><button class="linkbtn" data-act="open" data-id="'+r.id+'">看食材與營養</button></header><ol class="all">'+r.steps.map((x,i) => '<li><button data-act="goto" data-i="'+i+'" aria-current="'+(i === S.step)+'"><span>'+ACT[x.a]+'</span><span>'+esc(x.s)+'</span></button></li>').join('')+'</ol></section>';
+}
+function tick(){
+  timer.left = Math.max(0, timer.left - 1);
+  const el = $('#tleft'); if (el) el.textContent = mmss(timer.left);
+  if (!timer.left) { clearInterval(timer.int); timer.int = null; timer.done = true; beep(); if (S.view === 'cook') render(); }
+}
+function beep(){ try { if (!actx) return; [0,.35,.7].forEach(d => { const o = actx.createOscillator(), g = actx.createGain(); o.connect(g); g.connect(actx.destination); o.frequency.value = 880; g.gain.value = .15; o.start(actx.currentTime + d); o.stop(actx.currentTime + d + .2); }); } catch (e) {} }
+
+/* 請 Claude 再想幾道（sample capability；沒有時整塊不顯示） */
+let AI = null, aiCtl = null, aiMsg = '';
+try { window.claude && window.claude.use && window.claude.use('sample').then(fn => { AI = fn || null; if (AI && S.view === 'menu') render(); }).catch(() => {}); } catch (e) {}
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+function cleanAI(o){
+  if (!o || typeof o.name !== 'string') return null;
+  const ing = (Array.isArray(o.ing) ? o.ing : []).filter(x => Array.isArray(x) && ING[x[0]] && +x[1] > 0 && +x[1] < 2000).map(x => [x[0], +x[1]]);
+  const steps = (Array.isArray(o.steps) ? o.steps : []).filter(s => s && typeof s.s === 'string').slice(0,10).map(s => ({a: SC[s.a] ? s.a : 'mix', s: s.s.slice(0,200), t: +s.t > 0 ? Math.min(7200, Math.round(+s.t)) : 0}));
+  if (!ing.length || !steps.length) return null;
+  const tools = (Array.isArray(o.tools) ? o.tools : []).filter(t => TOOLS.some(x => x.id === t));
+  return {id:'ai' + Date.now().toString(36) + Math.random().toString(36).slice(2,6), ai:1, n:o.name.slice(0,24), cat: CATS[o.cat] ? o.cat : 'main', min: clamp(Math.round(+o.min) || 30, 5, 180), act: clamp(Math.round(+o.active) || 10, 1, 120), tools: tools.length ? tools : ['wok'], tags: (Array.isArray(o.tags) ? o.tags : []).filter(t => GOALS.some(g => g.id === t)), note: String(o.note || '').slice(0,120), ing, steps};
+}
+async function askAI(){
+  if (!AI || aiCtl) return;
+  aiCtl = new AbortController(); aiMsg = 'Claude 思考中，大約要 20–60 秒…'; render();
+  const prompt = '你是台灣家常菜的食譜顧問。請依下列條件設計 3 道新的家常菜，只回傳一個 JSON 陣列，不要有其他文字。\n'+
+    '條件：'+S.people+' 人吃；每道 '+S.time+' 分鐘內完成；可用廚具：'+S.tools.join(',')+'；膳食療養目標：'+(S.goals.join(',') || '無')+'；現在節氣：'+TERM[2]+'。\n'+
+    '不要和這些菜重複：'+all().map(r => r.n).join('、')+'。\n'+
+    '只能使用這些食材（id=名稱），份量單位是每人份公克：'+Object.values(ING).map(i => i.id+'='+i.n).join('，')+'。\n'+
+    '每道的格式：{"name":"菜名","cat":"main|side|soup|bowl","min":總分鐘數,"active":動手分鐘數,"tools":["任一樣就能完成的廚具id"],"tags":["符合的目標id"],"note":"一句繁體中文食療說明","ing":[["食材id",每人份公克]],"steps":[{"a":"動作id","s":"繁體中文步驟說明","t":需要計時的秒數或0}]}\n'+
+    '動作id：'+Object.keys(ACT).join(',')+'。廚具id：'+TOOLS.map(t => t.id).join(',')+'。目標id：'+GOALS.map(g => g.id+'='+g.n).join(',')+'。';
+  try {
+    const out = await AI.json(prompt, {signal: aiCtl.signal, cache: false});
+    const list = (Array.isArray(out) ? out : []).map(cleanAI).filter(Boolean).slice(0,3);
+    if (list.length) { S.ai = (S.ai || []).concat(list).slice(-9); aiMsg = '加了 ' + list.length + ' 道：' + list.map(r => r.n).join('、') + '。'; }
+    else aiMsg = '這次沒拿到可用的食譜，再按一次試試。';
+  } catch (e) {
+    const c = e && e.code;
+    if (['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].includes(c)) { AI = null; aiMsg = ''; }
+    else aiMsg = c === 'cancelled' ? '' : c === 'rate_limited' ? '你的 Claude 用量暫時到上限了，晚點再試。' : c === 'session_expired' ? '登入已過期，重新登入後再試。' : c === 'invalid_json' || c === 'empty_completion' ? '回覆的格式不對，再按一次試試。' : c === 'refused' ? 'Claude 沒有回答這個要求，換個條件再試。' : '連線中斷了，再按一次試試。';
+  }
+  aiCtl = null; render();
+}
+
+/* 事件 */
+function go(v){ S.view = v; render(); window.scrollTo(0, 0); if (v === 'cook') { try { navigator.wakeLock && navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {} } }
+function toggle(id){ S.picked = S.picked || []; const i = S.picked.indexOf(id); if (i >= 0) S.picked.splice(i, 1); else S.picked.push(id); S.manual = true; }
+const dlg = $('#dlg');
+document.addEventListener('click', e => {
+  if (e.target === dlg) { dlg.close(); return; }
+  const b = e.target.closest('[data-act]'); if (!b) return;
+  const a = b.dataset.act, id = b.dataset.id;
+  if (a === 'view') { if (dlg.open) dlg.close(); go(b.dataset.v); }
+  else if (a === 'people') { S.people = clamp(S.people + (+b.dataset.d), 1, 8); if (!S.manual) S.picked = null; render(); }
+  else if (a === 'auto') { S.manual = false; const before = (S.picked || []).join(); autoPick(); if ((S.picked || []).join() === before) { const el = all().filter(fits); const alt = el.filter(r => (r.cat === 'main' || r.cat === 'bowl') && !S.picked.includes(r.id)).sort((x,y) => score(y) - score(x))[0]; const i = S.picked.findIndex(p => ['main','bowl'].includes((byId(p) || {}).cat)); if (alt && i >= 0) S.picked[i] = alt.id; } render(); }
+  else if (a === 'pick') { toggle(id); if (dlg.open) dlg.innerHTML = detail(byId(id)); render(); }
+  else if (a === 'open') { const r = byId(id); if (r) { dlg.innerHTML = detail(r); if (!dlg.open) dlg.showModal(); dlg.scrollTop = 0; } }
+  else if (a === 'close') dlg.close();
+  else if (a === 'cookit') { dlg.close(); S.cook = id; S.step = 0; go('cook'); }
+  else if (a === 'cooktab') { S.cook = id; S.step = 0; render(); }
+  else if (a === 'step') { S.step += +b.dataset.d; render(); }
+  else if (a === 'goto') { S.step = +b.dataset.i; render(); window.scrollTo(0, 0); }
+  else if (a === 'timer') {
+    try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); } catch (err) {}
+    if (timer.int) { clearInterval(timer.int); timer.int = null; }
+    else { if (timer.done || !timer.left) { const r = byId(S.cook); timer.left = r.steps[S.step].t; timer.done = false; } timer.int = setInterval(tick, 1000); }
+    render();
+  }
+  else if (a === 'copy') {
+    const sh = shop(picked()), txt = '採買清單（' + store().n + '，' + S.people + ' 人份）\n' + sh.rows.filter(x => x.on).map(x => '□ ' + x.ing.n + ' ' + (store().mul ? '大包裝' : x.ing.pk) + ' × ' + x.packs + '　' + money(x.sub)).join('\n') + '\n合計 ' + money(sh.total);
+    const box = $('#copyBox'), done = () => { b.textContent = '已複製'; };
+    const fb = () => { box.hidden = false; box.value = txt; box.focus(); box.select(); b.textContent = '請手動複製下方文字'; };
+    try { navigator.clipboard.writeText(txt).then(done, fb); } catch (err) { fb(); }
+  }
+  else if (a === 'resetprice') { S.price = {}; render(); }
+  else if (a === 'ai') askAI();
+  else if (a === 'aistop') { if (aiCtl) aiCtl.abort(); }
+  else if (a === 'aiclear') { const ids = (S.ai || []).map(r => r.id); S.ai = []; S.picked = (S.picked || []).filter(p => !ids.includes(p)); aiMsg = ''; render(); }
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'budget') { S.budget = +e.target.value; $('#budgetOut').textContent = money(S.budget); $('#perHead').textContent = '平均每人 ' + money(S.budget / S.people); }
+});
+document.addEventListener('change', e => {
+  const t = e.target, auto = () => { if (!S.manual) S.picked = null; };
+  if (t.id === 'budget') { S.budget = +t.value; auto(); render(); }
+  else if (t.name === 'store') { S.store = t.value; auto(); render(); }
+  else if (t.name === 'time') { S.time = +t.value; auto(); render(); }
+  else if (t.name === 'tool') { S.tools = [...document.querySelectorAll('input[name=tool]:checked')].map(x => x.value); auto(); render(); }
+  else if (t.name === 'goal') { S.goals = [...document.querySelectorAll('input[name=goal]:checked')].map(x => x.value); auto(); render(); }
+  else if (t.dataset.ing) { const ing = ING[t.dataset.ing]; if (ing.st) S.need[ing.id] = t.checked; else S.skip[ing.id] = !t.checked; render(); }
+  else if (t.dataset.price) { const v = Math.round(+t.value), k = S.store + ':' + t.dataset.price; if (v > 0) S.price[k] = v; else delete S.price[k]; render(); }
+});
+render();
+</script>
