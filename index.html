@@ -1,4 +1,8 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>今晚煮什麼</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
@@ -255,6 +259,7 @@ svg,img,table,textarea,input,select{max-width:100%}
 table.nt,table.ing{display:block;overflow-x:auto}
 dialog{max-height:calc(100dvh - 24px)}
 dialog .dlg{max-height:calc(100dvh - 26px);overflow-y:auto;overscroll-behavior:contain}
+dialog .dlg > *{flex-shrink:0}
 @media (pointer:coarse){
   .btn,.stepper button,.tabs button,.x{min-height:44px}
   .btn.sm{min-height:40px}
@@ -310,6 +315,9 @@ dialog .dlg{max-height:calc(100dvh - 26px);overflow-y:auto;overscroll-behavior:c
   .thumb{width:48px;height:48px}
 }
 </style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}</style>
+</head>
+<body>
 
 <div class="wrap">
   <header class="top">
@@ -965,4 +973,5 @@ document.addEventListener('change', e => {
 $('#credits').innerHTML = '<summary>照片來源與授權</summary><ul>'+Object.keys(PH).filter(k => k.indexOf('a_') !== 0).map(k => { const label = (byId(k) && byId(k).n) || ACT[k.replace(/^a_/, '')] || k; return '<li>'+esc(label)+'：'+creditOf(k).replace('照片：','')+'</li>'; }).join('')+'</ul><p class="credit">部分照片來自 Wikimedia Commons，依各自創用 CC 授權使用；其餘為生成之料理示範圖。</p>';
 render();
 </script>
-
+</body>
+</html>
