@@ -260,6 +260,8 @@ table.nt,table.ing{display:block;overflow-x:auto}
 dialog{max-height:calc(100dvh - 24px)}
 dialog .dlg{max-height:calc(100dvh - 26px);overflow-y:auto;overscroll-behavior:contain}
 dialog .dlg > *{flex-shrink:0}
+.dlg{--dpad:18px}
+.dlg-foot{bottom:calc(-1 * var(--dpad));padding-bottom:var(--dpad);margin-bottom:calc(-1 * var(--dpad));border-top:1px solid var(--line)}
 @media (pointer:coarse){
   .btn,.stepper button,.tabs button,.x{min-height:44px}
   .btn.sm{min-height:40px}
@@ -306,7 +308,7 @@ dialog .dlg > *{flex-shrink:0}
   .bar p{flex:1 1 100%}
   .bar .btn{flex:1 1 auto}
   dialog{width:100vw;max-width:100vw;margin:auto 0 0;border-radius:16px 16px 0 0;max-height:92dvh}
-  dialog .dlg{max-height:92dvh;padding:16px}
+  dialog .dlg{max-height:92dvh;padding:16px;--dpad:16px}
   .total .num{font-size:26px}
 }
 @media (max-width:360px){
