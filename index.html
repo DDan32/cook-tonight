@@ -162,8 +162,7 @@ textarea.copy{width:100%;min-height:160px;border:1px solid var(--line);border-ra
 .tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}
 .tabs button{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 14px}
 .tabs button[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
-.player{display:grid;grid-template-columns:minmax(0,240px) minmax(0,1fr);gap:16px;align-items:center}
-@media (max-width:560px){.player{grid-template-columns:1fr}}
+.player{display:block}
 .anim{background:var(--bg);border-radius:14px;aspect-ratio:8/5;max-width:100%;display:grid;place-items:center;overflow:hidden}
 .anim svg{width:100%;height:100%;display:block}
 .stepno{font-size:13px;color:var(--muted);letter-spacing:.08em}
@@ -246,6 +245,70 @@ textarea.inp{min-height:130px;line-height:1.6;resize:vertical}
 .irow .cust[hidden]{display:none}
 .credits summary{font-size:13px;color:var(--muted)}
 .credits ul{margin:8px 0 0;padding-left:1.2em;font-size:12px;color:var(--muted)}
+
+/* ---- responsive: phone / tablet ---- */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+.wrap{overflow-x:clip}
+svg,img,table,textarea,input,select{max-width:100%}
+.panel,.card,.receipt,.row .nm,.opts,.stepnav,.timer{min-width:0}
+.steptext,.card-main,.note,.warnbox,.receipt{overflow-wrap:anywhere}
+table.nt,table.ing{display:block;overflow-x:auto}
+dialog{max-height:calc(100dvh - 24px)}
+dialog .dlg{max-height:calc(100dvh - 26px);overflow-y:auto;overscroll-behavior:contain}
+@media (pointer:coarse){
+  .btn,.stepper button,.tabs button,.x{min-height:44px}
+  .btn.sm{min-height:40px}
+  .row input[type=checkbox]{width:24px;height:24px}
+  .steps button{min-height:44px}
+}
+/* tablet */
+@media (min-width:700px){
+  .wrap{max-width:1040px;padding-inline:28px;gap:20px}
+  h1{font-size:34px}
+  .panel{padding:20px}
+  .trio{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .steptext{font-size:21px}
+  .stores{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+  .bar > div{max-width:984px}
+  dialog{width:min(720px,calc(100vw - 48px))}
+}
+@media (min-width:1000px){
+  .cards{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+/* phone */
+@media (max-width:520px){
+  .wrap{padding-inline:16px;padding-block:14px 132px;gap:12px}
+  h1{font-size:25px}
+  .top p{font-size:14px}
+  .panel{padding:14px;border-radius:12px}
+  .steps{gap:3px}
+  .steps button{padding:8px 2px;gap:3px;font-size:14px}
+  .steps button i{font-size:15px}
+  .trio{grid-template-columns:1fr}
+  .stores{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .big{font-size:30px}
+  .statrow{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .row{grid-template-columns:auto minmax(0,1fr) auto;gap:4px 8px}
+  .row .sub{grid-column:3;min-width:0}
+  .row .pin{grid-column:2;justify-self:start}
+  .card-side{gap:6px}
+  .steptext{font-size:18px}
+  .stepnav .btn{padding-inline:8px}
+  .irow{grid-template-columns:minmax(0,1fr) 72px 34px}
+  .bar{padding-inline:16px}
+  .bar > div{flex-wrap:wrap;gap:8px}
+  .bar p{flex:1 1 100%}
+  .bar .btn{flex:1 1 auto}
+  dialog{width:100vw;max-width:100vw;margin:auto 0 0;border-radius:16px 16px 0 0;max-height:92dvh}
+  dialog .dlg{max-height:92dvh;padding:16px}
+  .total .num{font-size:26px}
+}
+@media (max-width:360px){
+  .steps button span{font-size:12px}
+  .card{grid-template-columns:48px minmax(0,1fr) auto}
+  .thumb{width:48px;height:48px}
+}
 </style>
 
 <div class="wrap">
@@ -701,7 +764,7 @@ function detail(r){
     '<p class="small muted">右欄是佔每日參考值的比例（2000 大卡、蛋白質 60g、脂肪 60g、碳水 300g、纖維 25g、鈉 2000mg）。數值由食材重量估算，帶骨、帶殼的已扣除不可食部分。</p>'+
     '<div><h3>食材（'+S.people+' 人份）</h3><table class="ing"><tbody>'+r.ing.map(([id,g]) => '<tr><td>'+ING[id].n+(ING[id].st ? ' <span class="muted small">常備</span>' : '')+'</td><td>'+qty(ING[id], g * S.people)+'</td></tr>').join('')+'</tbody></table></div>'+
     '<div><h3>做法</h3><ol class="plain">'+r.steps.map(s => '<li>'+esc(s.s)+'</li>').join('')+'</ol></div>'+
-    '<div class="dlg-foot"><button class="btn ghost" data-act="pick" data-id="'+r.id+'">'+(on ? '從菜單移除' : '加入菜單')+'</button><button class="btn" data-act="cookit" data-id="'+r.id+'">跟著動畫做</button></div></div>';
+    '<div class="dlg-foot"><button class="btn ghost" data-act="pick" data-id="'+r.id+'">'+(on ? '從菜單移除' : '加入菜單')+'</button><button class="btn" data-act="cookit" data-id="'+r.id+'">開始下廚</button></div></div>';
 }
 
 function vShop(){
@@ -727,12 +790,6 @@ function vShop(){
 }
 
 
-function stepPic(r, a){
-  if (a === 'serve') return pic(r);
-  const k = ACTPH[a]; if (k && PH[k]) return '<img src="'+PH[k].f+'" alt="'+(ACT[a] || '')+'">';
-  return scene(a);
-}
-function stepCredit(r, a){ const c = a === 'serve' ? creditLine(r) : ACTPH[a] ? creditOf(ACTPH[a]) : ''; return c ? '<p class="credit" style="margin-top:4px">'+c+'</p>' : ''; }
 let timer = {left:0, int:null, key:'', done:false}, actx = null;
 const mmss = s => String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
 function vCook(){
@@ -748,7 +805,7 @@ function vCook(){
   const order = list.slice().sort((x,y) => y.min - x.min);
   return (list.length > 1 ? '<section class="panel"><h2>先做哪一道</h2><p class="small muted">最花時間的先下鍋，等它的時候做其他菜：</p><p>'+order.map(x => esc(x.n)+'（'+x.min+' 分）').join(' → ')+'</p></section>' : '')+
     '<div class="tabs">'+tabs.map(x => '<button data-act="cooktab" data-id="'+x.id+'" aria-pressed="'+(x === r)+'">'+esc(x.n)+'</button>').join('')+'</div>'+
-    '<section class="panel"><div class="player"><div><div class="anim">'+stepPic(r, a)+'</div>'+stepCredit(r, a)+'</div><div style="display:flex;flex-direction:column;gap:12px;min-width:0">'+
+    '<section class="panel"><div class="player"><div style="display:flex;flex-direction:column;gap:12px;min-width:0">'+
       '<p class="stepno">步驟 '+(S.step+1)+' / '+r.steps.length+' · '+ACT[a]+'</p><p class="steptext">'+esc(s.s)+'</p>'+
       (s.t ? '<div class="timer'+(timer.done ? ' done' : '')+'" id="timer"><span class="num" id="tleft">'+mmss(timer.left)+'</span><button class="btn ghost sm" data-act="timer" id="tbtn">'+(timer.int ? '暫停' : timer.done ? '重新計時' : '開始計時')+'</button></div>' : '')+
       '<div class="stepnav"><button class="btn ghost" data-act="step" data-d="-1"'+(S.step ? '' : ' disabled')+'>上一步</button><button class="btn" data-act="step" data-d="1"'+(S.step < r.steps.length - 1 ? '' : ' disabled')+'>下一步</button></div>'+
@@ -905,6 +962,7 @@ document.addEventListener('change', e => {
   else if (t.dataset.ing) { const ing = ING[t.dataset.ing]; if (ing.st) S.need[ing.id] = t.checked; else S.skip[ing.id] = !t.checked; render(); }
   else if (t.dataset.price) { const v = Math.round(+t.value), k = S.store + ':' + t.dataset.price; if (v > 0) S.price[k] = v; else delete S.price[k]; render(); }
 });
-$('#credits').innerHTML = '<summary>照片來源與授權</summary><ul>'+Object.keys(PH).map(k => { const label = (byId(k) && byId(k).n) || ACT[k.replace(/^a_/, '')] || k; return '<li>'+esc(label)+'：'+creditOf(k).replace('照片：','')+'</li>'; }).join('')+'</ul><p class="credit">部分照片來自 Wikimedia Commons，依各自創用 CC 授權使用；部分料理與烹飪示範照片為生成之料理示範圖。</p>';
+$('#credits').innerHTML = '<summary>照片來源與授權</summary><ul>'+Object.keys(PH).filter(k => k.indexOf('a_') !== 0).map(k => { const label = (byId(k) && byId(k).n) || ACT[k.replace(/^a_/, '')] || k; return '<li>'+esc(label)+'：'+creditOf(k).replace('照片：','')+'</li>'; }).join('')+'</ul><p class="credit">部分照片來自 Wikimedia Commons，依各自創用 CC 授權使用；其餘為生成之料理示範圖。</p>';
 render();
 </script>
+
